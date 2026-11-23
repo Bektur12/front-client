@@ -7,7 +7,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { getThumbnailAsync } from 'expo-video-thumbnails'
 import { useConfirmLeave } from '@/lib/use-confirm-leave'
 import { BigButton, TickIcon, priceDigits } from '@/components/buyer-v23'
-import { QueryErrorBanner, ScreenHeader, toast } from '@/components/ui'
+import { QueryErrorBanner, ScreenHeader, toast, Toggle } from '@/components/ui'
 import { CloseIcon, GalleryIcon } from '@/components/icons'
 import { LoopVideo, TruckTile } from '@/components/video-v23'
 import { voiceClock } from '@/components/voice'
@@ -47,6 +47,8 @@ export default function SellerVideoScreen() {
 	const [uploadError, setUploadError] = useState<string | null>(null)
 	const [title, setTitle] = useState('')
 	const [price, setPrice] = useState('')
+	// «Договорная»: без цены — покупатель спросит в чате или позвонит
+	const [negotiable, setNegotiable] = useState(false)
 	const [condition, setCondition] = useState<'NEW' | 'USED'>('NEW')
 	const [ships, setShips] = useState(true)
 	// «Подходит к машинам» — optional; picked on the same screen as for a photo part, kept in the part draft
@@ -60,7 +62,7 @@ export default function SellerVideoScreen() {
 	const draft = uploaded?.draft
 	const fromVoice = Boolean(draft && (draft.title || draft.price || draft.condition))
 	const priceValue = Number(price.replace(/\D/g, ''))
-	const ready = Boolean(uploaded && title.trim() && priceValue > 0)
+	const ready = Boolean(uploaded && title.trim() && (negotiable || priceValue > 0))
 
 	const upload = async (next: Recorded) => {
 		// The server takes up to 30 s — say so right away instead of uploading a long video for nothing.
@@ -105,7 +107,8 @@ export default function SellerVideoScreen() {
 				id: draftId.current ?? undefined,
 				body: {
 					title: title.trim(),
-					price: priceValue,
+					price: negotiable ? undefined : priceValue,
+					priceNegotiable: negotiable,
 					condition,
 					quantity: 1,
 					videoMediaId: uploaded.video.id,
@@ -236,7 +239,8 @@ export default function SellerVideoScreen() {
 							<Text style={label}>{t('Цена, сом')}</Text>
 							<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 								ref={priceRef}
-								value={price}
+								value={negotiable ? t('Договорная') : price}
+								editable={!negotiable}
 								returnKeyType="done"
 								onChangeText={(text) => {
 									const digits = text.replace(/\D/g, '')
@@ -273,6 +277,13 @@ export default function SellerVideoScreen() {
 								))}
 							</View>
 						</View>
+					</View>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 2 }}>
+						<View style={{ flex: 1, gap: 2 }}>
+							<Text style={{ fontSize: fs.base, fontFamily: fontFamily(600), color: c.ink }}>{t('Цена договорная')}</Text>
+							<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(400), color: c.muted }}>{t('Покупатель узнает цену в чате или по телефону')}</Text>
+						</View>
+						<Toggle value={negotiable} onChange={setNegotiable} />
 					</View>
 				</View>
 
