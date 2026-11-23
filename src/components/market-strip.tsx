@@ -8,7 +8,7 @@ import { Caps } from '@/components/buyer-v23'
 import { MarketLetter } from '@/components/market-chips'
 import { sellersLabel } from '@/components/market-switch'
 import { marketLook } from '@/lib/markets'
-import { fontFamily, fs, useColors } from '@/theme'
+import { fixed, fontFamily, fs } from '@/theme'
 import { t } from '@/i18n'
 
 /**
@@ -17,7 +17,6 @@ import { t } from '@/i18n'
  * (or tiles leading to empty pages) helps no one. It appears by itself as sellers join other markets.
  */
 export function MarketStrip() {
-	const c = useColors()
 	const markets = useMarkets().data ?? []
 	const counts = useQueries({
 		queries: markets.map((market) => ({
@@ -47,8 +46,9 @@ export function MarketStrip() {
 						>
 							<MarketLetter code={market.code} />
 							<View style={{ gap: 2 }}>
-								<Text numberOfLines={1} style={{ fontSize: fs.md, fontFamily: fontFamily(800), color: c.ink }}>{market.name}</Text>
-								<Text numberOfLines={1} style={{ fontSize: fs.sm, fontFamily: fontFamily(500), color: c.muted }}>{sellersLabel(count, more)}</Text>
+								{/* light tint in both themes — dark text on it */}
+								<Text numberOfLines={1} style={{ fontSize: fs.md, fontFamily: fontFamily(800), color: look.ink }}>{market.name}</Text>
+								<Text numberOfLines={1} style={{ fontSize: fs.sm, fontFamily: fontFamily(500), color: fixed.mutedOnLight }}>{sellersLabel(count, more)}</Text>
 							</View>
 						</Pressable>
 					)

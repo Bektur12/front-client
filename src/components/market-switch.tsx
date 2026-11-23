@@ -63,14 +63,22 @@ export function MarketSwitch({ value, onChange, floating = false }: { value: num
 	)
 }
 
-/** «Открыто до 17:00 · пн выходной» in green / grey. */
-export function MarketHoursLine({ prefix }: { prefix?: string }) {
+/** «Открыто» on a light tint — dark green, readable in both themes. */
+const OPEN_ON_LIGHT = '#08703E'
+
+/**
+ * «Открыто до 17:00 · пн выходной» in green / grey. `onLight` — on the market's light tint: the tint is the same in the
+ * dark theme, so the text stays dark there too (theme colors were white on the near-white tint).
+ */
+export function MarketHoursLine({ prefix, onLight }: { prefix?: string; onLight?: boolean }) {
 	const c = useColors()
 	const hours = marketHours()
+	const muted = onLight ? fixed.mutedOnLight : c.muted
+	const open = onLight ? OPEN_ON_LIGHT : c.success
 	return (
-		<Text style={{ fontSize: fs.md, lineHeight: 20, fontFamily: fontFamily(500), color: c.muted }}>
+		<Text style={{ fontSize: fs.md, lineHeight: 20, fontFamily: fontFamily(500), color: muted }}>
 			{prefix ? `${prefix} · ` : ''}
-			<Text style={{ fontFamily: fontFamily(700), color: hours.open ? c.success : c.muted }}>{hours.label}</Text>
+			<Text style={{ fontFamily: fontFamily(700), color: hours.open ? open : muted }}>{hours.label}</Text>
 			{hours.open ? t(' · пн выходной') : ''}
 		</Text>
 	)
@@ -100,11 +108,12 @@ export function MarketPage({ market, switcher }: { market: Market; switcher: Rea
 			<View style={{ marginHorizontal: 16, marginTop: 4, borderRadius: 22, padding: 16, backgroundColor: look.tint, flexDirection: 'row', alignItems: 'center', gap: 14 }}>
 				<MarketLetter code={market.code} size="lg" />
 				<View style={{ flex: 1, gap: 3 }}>
-					<Text style={{ fontSize: fs.xl, fontFamily: fontFamily(800), color: c.ink }}>{market.name}</Text>
-					<Text style={{ fontSize: fs.md, lineHeight: 20, fontFamily: fontFamily(500), color: c.muted }}>
+					{/* The tint is light in both themes — dark text on it, not the theme's (white in the dark theme). */}
+					<Text style={{ fontSize: fs.xl, fontFamily: fontFamily(800), color: look.ink }}>{market.name}</Text>
+					<Text style={{ fontSize: fs.md, lineHeight: 20, fontFamily: fontFamily(500), color: fixed.mutedOnLight }}>
 						{[look.address, look.near].filter(Boolean).join(' · ')}
 					</Text>
-					<MarketHoursLine />
+					<MarketHoursLine onLight />
 				</View>
 			</View>
 			<View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16 }}>
