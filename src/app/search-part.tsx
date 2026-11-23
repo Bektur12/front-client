@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { QueryErrorBanner, ScreenHeader } from '@/components/ui'
 import { BrandLogo } from '@/components/ui/brand'
+import { GalleryIcon } from '@/components/icons'
 import { BigButton, Caps, CameraV23Icon, CrossIcon, MicV23Icon, PaperPlaneIcon, PlusThinIcon } from '@/components/buyer-v23'
 import { VoicePlayer, useVoiceNote, voiceClock } from '@/components/voice'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
@@ -261,6 +262,19 @@ export default function SearchPartScreen() {
 						</DashedTile>
 					)}
 				</View>
+				{/* Фото уже в телефоне — из галереи (раньше только долгим нажатием на «Сфотать», никто не находил). */}
+				{uploads.canAdd ? (
+					<Pressable
+						onPress={() => uploads.pick('library')}
+						accessibilityRole="button"
+						style={{ height: 44, borderRadius: 14, backgroundColor: c.brandTint, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+					>
+						<GalleryIcon size={20} color={c.brandStrong} />
+						<Text style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: c.brandStrong }}>
+							{photo ? t('Добавить из галереи') : t('Выбрать из галереи')}
+						</Text>
+					</Pressable>
+				) : null}
 				{voice.error ? <Text style={{ fontSize: fs.sm, fontFamily: fontFamily(500), color: c.danger }}>{voice.error}</Text> : null}
 
 				<TextInput inputAccessoryViewID={KEYBOARD_DONE}

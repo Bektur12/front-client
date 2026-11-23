@@ -1,24 +1,19 @@
 import { useEffect, useRef, type ComponentType, type ReactNode } from 'react'
 import { Pressable, RefreshControl, ScrollView, Text, View, type ScrollViewInstance } from 'react-native'
-import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { LinearGradient } from 'expo-linear-gradient'
 import { router, useScrollToTop } from 'expo-router'
-import { resolveUrl } from '@/lib/api'
 import { usePullRefresh } from '@/lib/use-pull-refresh'
 import { QueryErrorBanner, Skeleton, SkeletonRepeat } from '@/components/ui'
 import {
 	Caps,
 	ChevronIcon,
-	LiveDot,
 	LoupeIcon,
-	MetaChip,
 	PlusThinIcon,
 	TowIcon,
 	WheelIcon,
 	WrenchIcon,
 } from '@/components/buyer-v23'
-import { TruckIcon, deliveryStatusText } from '@/components/video-v23'
 import { MarketVideos } from '@/components/market-videos'
 import { MarketStrip } from '@/components/market-strip'
 import { RecentlyViewed } from '@/components/recently-viewed'
@@ -30,8 +25,6 @@ import { useMyRequests } from '@/api/requests'
 import { flattenPages } from '@/api/pagination'
 import { useMyServiceRequests } from '@/api/services'
 import { useSignedIn } from '@/api/catalog'
-import { useDeliveryOrders } from '@/api/delivery'
-import type { DeliveryOrder } from '@/api/types'
 import { t } from '@/i18n'
 import { requireSignIn } from '@/components/sign-in-prompt'
 import { Greeting } from '@/components/greeting'
@@ -59,10 +52,7 @@ export default function BuyerHomeScreen() {
 	const cars = useCars(signedIn)
 	const requests = useMyRequests()
 	const services = useMyServiceRequests()
-	const delivery = useDeliveryOrders('BUYER', signedIn)
-	const parcels = delivery.data ?? []
-	// refetch() runs even a disabled query — a guest has no parcels to ask for.
-	const pull = usePullRefresh(() => [cars.refetch(), requests.refetch(), services.refetch(), signedIn && delivery.refetch()])
+	const pull = usePullRefresh(() => [cars.refetch(), requests.refetch(), services.refetch()])
 	// Parts requests and service requests in one list, newest first.
 	const items = mergeRequests(flattenPages(requests.data), flattenPages(services.data))
 	const car = cars.data?.find((item) => item.isPrimary) ?? cars.data?.[0]
@@ -165,10 +155,6 @@ export default function BuyerHomeScreen() {
 
 				<RecentlyViewed />
 
-				{parcels.map((order) => (
-					<ParcelRow key={order.id} order={order} />
-				))}
-
 				{/* No requests yet — no empty heading either. */}
 				{items.length ? (
 					<>
@@ -199,24 +185,6 @@ export default function BuyerHomeScreen() {
 			</ScrollView>
 
 		</View>
-	)
-}
-
-/** A parcel on the way — «Где посылка». */
-function ParcelRow({ order }: { order: DeliveryOrder }) {
-	const c = useColors()
-	return (
-		<RequestCard
-			tile={
-				<Tile>
-					<TruckIcon size={22} color={c.brandStrong} />
-				</Tile>
-			}
-			title={order.part.title}
-			status={`${deliveryStatusText(order)} · ${order.number}`}
-			live={order.status === 'PICKED_UP'}
-			onPress={() => router.push({ pathname: '/delivery-order', params: { id: String(order.id) } })}
-		/>
 	)
 }
 
@@ -254,49 +222,6 @@ function ServiceTile({ label, icon, muted, onPress }: { label: string; icon: Rea
 	)
 }
 
-/** A card of «Мои запросы»: tile, title, status line, chevron; optional chip row under it. */
-function RequestCard({
-	tile,
-	title,
-	status,
-	live,
-	chip,
-	onPress,
-}: {
-	tile: ReactNode
-	title: string
-	status: string
-	live?: boolean
-	chip?: string
-	onPress: () => void
-}) {
-	const c = useColors()
-	return (
-		<Pressable onPress={onPress} style={{ borderRadius: 18, backgroundColor: c.card, padding: 12, gap: 10 }}>
-			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-				{tile}
-				<View style={{ flex: 1, gap: 3 }}>
-					<Text numberOfLines={1} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>
-						{title}
-					</Text>
-					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-						{live ? <LiveDot /> : null}
-						<Text numberOfLines={1} style={{ flex: 1, fontSize: fs.md, fontFamily: fontFamily(400), color: c.muted }}>
-							{status}
-						</Text>
-					</View>
-				</View>
-				<ChevronIcon size={20} color={c.chevron} />
-			</View>
-			{chip ? (
-				<View style={{ flexDirection: 'row' }}>
-					<MetaChip label={chip} tone="green" />
-				</View>
-			) : null}
-		</Pressable>
-	)
-}
-
 function RequestCardSkeleton() {
 	const c = useColors()
 	return (
@@ -306,17 +231,6 @@ function RequestCardSkeleton() {
 				<Skeleton width="70%" height={17} />
 				<Skeleton width="45%" height={14} />
 			</View>
-		</View>
-	)
-}
-
-/** The tile on the left: the request's photo when there is one (so the rows don't look alike), else the icon. */
-function Tile({ children, photo }: { children: ReactNode; photo?: string | null }) {
-	const c = useColors()
-	if (photo) return <Image source={{ uri: resolveUrl(photo) }} style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: c.brandTint }} />
-	return (
-		<View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: c.brandTint, alignItems: 'center', justifyContent: 'center' }}>
-			{children}
 		</View>
 	)
 }
