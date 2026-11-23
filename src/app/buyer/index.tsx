@@ -28,6 +28,7 @@ import { useSignedIn } from '@/api/catalog'
 import { t } from '@/i18n'
 import { requireSignIn } from '@/components/sign-in-prompt'
 import { Greeting } from '@/components/greeting'
+import { GarageNudge } from '@/components/garage-nudge'
 import { useRoadsidePack } from '@/store/useRoadsidePack'
 
 /** «Нужен мастер?» [03]: three services → the one-screen request [16], «Все услуги» → choose there. */
@@ -184,6 +185,8 @@ export default function BuyerHomeScreen() {
 
 			</ScrollView>
 
+			{/* Гараж пустой — мягко предложить добавить машину. */}
+			<GarageNudge />
 		</View>
 	)
 }
