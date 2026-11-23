@@ -22,6 +22,7 @@ import { useVideoViewer } from '@/store/useVideoViewer'
 import { marketPlace } from '@/lib/shop-place'
 import { t } from '@/i18n'
 import { openSignIn } from '@/components/sign-in-prompt'
+import { DeliveryChoiceSheet } from '@/components/delivery-choice'
 import { goBack } from '@/lib/navigation'
 
 /**
@@ -125,7 +126,7 @@ function VideoFeed({ top, bottom }: { top: number; bottom: number }) {
 	)
 }
 
-/** One video of the feed: full screen, plays while active, the seller, the part, «Заказать» and «Доставка». */
+/** One video of the feed: full screen, plays while active, the seller, the part, «Написать» and «Доставка» (Яндекс или Ылдам). */
 function FeedPage({
 	item,
 	height,
@@ -152,7 +153,7 @@ function FeedPage({
 	const poster = resolveUrl(item.video.posterUrl)
 	const shop = item.shop
 	const openChat = useOpenChat()
-	// «Заказать» — the chat with the box about this part, «Хочу заказать …» already typed (a guest signs in first).
+	// «Написать» — the chat with the box about this part, «Хочу заказать …» already typed (a guest signs in first).
 	const order = () =>
 		signedIn
 			? openChat.mutate(
@@ -168,6 +169,8 @@ function FeedPage({
 			: openSignIn()
 	const meta = [marketPlace(shop.place), shop.replyMinutes != null ? t('отвечает за {0} мин', shop.replyMinutes) : null].filter(Boolean).join(' · ')
 	const [commenting, setCommenting] = useState(false)
+	// «Доставка» — сначала кем: Яндекс курьер или Ылдам
+	const [delivering, setDelivering] = useState(false)
 	const condition = CONDITION_CHIP[item.condition]
 	const description = [condition, item.fitsLabel].filter(Boolean).join('. ')
 
@@ -267,11 +270,11 @@ function FeedPage({
 						}}
 					>
 						<ChatIcon size={20} color={fixed.white} strokeWidth={2.2} />
-						<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Заказать')}</Text>
+						<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Написать')}</Text>
 					</Pressable>
 					{/* доставка у каждого товара, как в карточке */}
 					<Pressable
-						onPress={() => (signedIn ? router.push({ pathname: '/delivery', params: { partId: String(item.partId) } }) : openSignIn())}
+						onPress={() => (signedIn ? setDelivering(true) : openSignIn())}
 						style={{
 							flex: 1,
 							height: 52,
@@ -302,6 +305,7 @@ function FeedPage({
 			</View>
 
 			{commenting ? <CommentsSheet partId={item.partId} onClose={() => setCommenting(false)} /> : null}
+			{delivering ? <DeliveryChoiceSheet partId={item.partId} onClose={() => setDelivering(false)} /> : null}
 		</View>
 	)
 }
