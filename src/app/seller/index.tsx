@@ -101,30 +101,37 @@ export default function SellerRequestsScreen() {
 	)
 }
 
-/** «Видео с рынка»: что снимают другие продавцы — и кнопка снять своё (товар попадает в ленту покупателей). */
+/** «Видео с рынка» — ролики других продавцов; первой плиткой «＋ Снять», как «Ваша история» в Instagram. */
 function SellerVideos() {
+	return <MarketVideos title={t('Видео с рынка')} leading={<ShootTile />} />
+}
+
+/** Плитка размером с ролик: пунктир, камера, «Снять» — без текста, который надо читать. */
+function ShootTile() {
 	const c = useColors()
 	return (
-		<View style={{ gap: 10 }}>
-			<Pressable
-				onPress={() => router.push('/seller-video')}
-				accessibilityRole="button"
-				style={{ borderRadius: 18, backgroundColor: c.brandTint, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}
-			>
-				<View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}>
-					<CameraIcon size={24} color={fixed.white} />
-				</View>
-				<View style={{ flex: 1, gap: 2 }}>
-					<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Снять своё видео')}</Text>
-					<Text style={{ fontSize: fs.sm, lineHeight: 18.5, fontFamily: fontFamily(400), color: c.inkSecondary }}>
-						{t('10–15 секунд о запчасти — покупатели увидят его в ленте')}
-					</Text>
-				</View>
-				<Text style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Снять')}</Text>
-			</Pressable>
-			<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Видео других продавцов')}</Text>
-			<MarketVideos />
-		</View>
+		<Pressable
+			onPress={() => router.push('/seller-video')}
+			accessibilityRole="button"
+			accessibilityLabel={t('Снять видео')}
+			style={{
+				width: 120,
+				height: 250,
+				borderRadius: 18,
+				borderWidth: 2,
+				borderStyle: 'dashed',
+				borderColor: c.dashedBrand,
+				backgroundColor: c.brandTint,
+				alignItems: 'center',
+				justifyContent: 'center',
+				gap: 10,
+			}}
+		>
+			<View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}>
+				<CameraIcon size={26} color={fixed.white} />
+			</View>
+			<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(800), color: c.brandStrong }}>{t('Снять')}</Text>
+		</Pressable>
 	)
 }
 

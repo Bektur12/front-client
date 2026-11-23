@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useState, type ReactNode } from 'react'
 import { FlatList, Text, View, type ListViewToken } from 'react-native'
 import { router, useIsFocused } from 'expo-router'
 import { VideoTile } from '@/components/video-v23'
@@ -12,9 +12,10 @@ import { t } from '@/i18n'
 
 /**
  * Videos from the market — ads, the same for everyone (not tied to a car): tiles play by themselves without sound,
- * a tap opens the feed on that video.
+ * a tap opens the feed on that video. `title` — the heading on the left of «Смотреть все»; `leading` — a tile before
+ * the videos (the seller's «＋ Снять», like «Ваша история» in Instagram), shown even when there are no videos yet.
  */
-export function MarketVideos() {
+export function MarketVideos({ title, leading }: { title?: string; leading?: ReactNode } = {}) {
 	const c = useColors()
 	const feed = useVideoFeed()
 	const items = flattenPages(feed.data)
@@ -40,7 +41,7 @@ export function MarketVideos() {
 				</View>
 			</View>
 		)
-	if (!items.length) return null
+	if (!items.length && !leading) return null
 
 	const openFeed = (partId?: number) => {
 		if (partId) useVideoViewer.getState().openVideo(partId)
@@ -50,8 +51,12 @@ export function MarketVideos() {
 	return (
 		<View style={{ gap: 10, paddingTop: 2 }}>
 			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-				<View style={{ flex: 1 }} />
-				<Text onPress={() => openFeed()} style={{ flexShrink: 0, fontSize: fs.base, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Смотреть все')}</Text>
+				{title ? (
+					<Text style={{ flex: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{title}</Text>
+				) : (
+					<View style={{ flex: 1 }} />
+				)}
+				{items.length ? <Text onPress={() => openFeed()} style={{ flexShrink: 0, fontSize: fs.base, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Смотреть все')}</Text> : null}
 			</View>
 			<FlatList
 				horizontal
@@ -60,7 +65,12 @@ export function MarketVideos() {
 				showsHorizontalScrollIndicator={false}
 				contentContainerStyle={{ gap: 8 }}
 				style={{ marginHorizontal: -16 }}
-				ListHeaderComponent={<View style={{ width: 8 }} />}
+				ListHeaderComponent={
+					<View style={{ flexDirection: 'row' }}>
+						<View style={{ width: 8 }} />
+						{leading ? <View style={{ marginRight: 8 }}>{leading}</View> : null}
+					</View>
+				}
 				ListFooterComponent={<View style={{ width: 8 }} />}
 				onViewableItemsChanged={onViewable}
 				viewabilityConfig={{ itemVisiblePercentThreshold: 50 }}
