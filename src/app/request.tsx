@@ -318,6 +318,10 @@ function ReplyCard({ reply, best }: { reply: Reply; best: boolean }) {
 						</Text>
 						<Text style={{ fontSize: fs.xs, fontFamily: fontFamily(600), color: c.muted }}>{t('сом')}</Text>
 					</View>
+				) : reply.priceNegotiable ? (
+					<View style={{ height: 28, paddingHorizontal: 10, borderRadius: 14, backgroundColor: c.brandTint, justifyContent: 'center' }}>
+						<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Договорная')}</Text>
+					</View>
 				) : null}
 			</View>
 			{chips.length ? (

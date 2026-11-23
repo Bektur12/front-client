@@ -32,6 +32,8 @@ export default function SellerAnswerScreen() {
 	const reply = useReplyToRequest(id)
 
 	const [price, setPrice] = useState('')
+	// «Договорная»: без суммы — покупатель спросит в чате или позвонит
+	const [negotiable, setNegotiable] = useState(false)
 	const [condition, setCondition] = useState<PartCondition | null>(null)
 	const [original, setOriginal] = useState<boolean | null>(null)
 	// The voice goes to the buyer as is; the price and the condition the seller sets by hand.
@@ -46,6 +48,7 @@ export default function SellerAnswerScreen() {
 	const data = request.data
 	const voice = note.result?.voice
 	const amount = Number(price)
+	const priced = negotiable || amount > 0
 	const leave = useConfirmLeave(Boolean(price) || Boolean(voice) || note.recording)
 
 	const rerecord = () => {
@@ -57,7 +60,8 @@ export default function SellerAnswerScreen() {
 		reply.mutate(
 			{
 				answer: 'HAVE',
-				price: amount,
+				price: negotiable ? undefined : amount,
+				priceNegotiable: negotiable,
 				condition: condition ?? undefined,
 				original: original ?? undefined,
 				voiceMediaId: voice?.id,
@@ -149,7 +153,8 @@ export default function SellerAnswerScreen() {
 								height: 64,
 								borderRadius: 16,
 								borderWidth: 2.5,
-								borderColor: amount > 0 ? c.success : c.border,
+								borderColor: priced ? c.success : c.border,
+								opacity: negotiable ? 0.55 : 1,
 								paddingHorizontal: 16,
 								flexDirection: 'row',
 								alignItems: 'center',
@@ -157,15 +162,18 @@ export default function SellerAnswerScreen() {
 							}}
 						>
 							<TextInput inputAccessoryViewID={KEYBOARD_DONE}
-								value={amount > 0 ? formatNumber(amount) : price}
+								value={negotiable ? '' : amount > 0 ? formatNumber(amount) : price}
+								editable={!negotiable}
 								onChangeText={(text) => setPrice(text.replace(/\D/g, '').slice(0, 7))}
 								keyboardType="number-pad"
-								placeholder={t('Цена')}
+								placeholder={negotiable ? t('Договорная') : t('Цена')}
 								placeholderTextColor={c.fillInk}
 								style={{ flex: 1, minWidth: 40, fontSize: fs.hero, fontFamily: fontFamily(800), letterSpacing: -0.64, color: c.ink, padding: 0 }}
 							/>
 							<Text style={{ fontSize: fs.xxl, fontFamily: fontFamily(700), color: c.muted }}>{t('сом')}</Text>
 						</View>
+
+						<Choice label={t('Цена договорная')} active={negotiable} onPress={() => setNegotiable((value) => !value)} />
 
 						<View style={{ flexDirection: 'row', gap: 8 }}>
 							<Choice label={t('Новая')} active={condition === 'NEW'} onPress={() => setCondition('NEW')} />
@@ -179,7 +187,7 @@ export default function SellerAnswerScreen() {
 						{reply.error ? <Text style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.danger }}>{reply.error.message}</Text> : null}
 
 						<Pressable
-							disabled={!(amount > 0) || reply.isPending || note.recording || note.uploading}
+							disabled={!priced || reply.isPending || note.recording || note.uploading}
 							onPress={send}
 							style={{
 								height: 58,
@@ -189,7 +197,7 @@ export default function SellerAnswerScreen() {
 								alignItems: 'center',
 								justifyContent: 'center',
 								gap: 8,
-								opacity: amount > 0 && !reply.isPending ? 1 : 0.4,
+								opacity: priced && !reply.isPending ? 1 : 0.4,
 							}}
 						>
 							<PlaneIcon size={20} color={fixed.white} />

@@ -427,7 +427,7 @@ function Message({
 	}
 
 	const payload = (message.payload ?? {}) as Record<string, unknown>
-	const price = typeof payload.price === 'number' ? formatPrice(payload.price) : null
+	const price = typeof payload.price === 'number' ? formatPrice(payload.price) : payload.priceNegotiable === true ? t('Договорная') : null
 	// A master's «Могу помочь» [37]: `{offerId, priceFrom, availableAt}`.
 	const offerPrice = typeof payload.priceFrom === 'number' ? t('от {0}', formatPrice(payload.priceFrom)) : null
 	const offerAt = typeof payload.availableAt === 'string' ? formatWhenAt(payload.availableAt) : null
@@ -587,6 +587,7 @@ function replyText(payload: Record<string, unknown>, text: string | null | undef
 	let line = condition ? `${head}, ${CONDITION_WORD[condition] ?? ''}` : head
 	if (tags.length) line += `. ${tags.join(', ')}`
 	if (typeof payload.price === 'number') line += ` — ${formatPrice(payload.price)}`
+	else if (payload.priceNegotiable === true) line += ` — ${t('цена договорная')}`
 	return text ? `${line}\n${text}` : line
 }
 

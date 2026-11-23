@@ -5877,6 +5877,8 @@ export interface components {
             original?: boolean;
             manufacturer?: string;
             tags?: string[];
+            /** «Договорная»: цены нет */
+            priceNegotiable?: boolean;
         };
         PartCardDto: {
             /** Format: int64 */
@@ -5926,6 +5928,8 @@ export interface components {
             tags: string[];
             /** Format: int32 */
             walkMinutes: number | null;
+            /** «Договорная» (price = null) */
+            priceNegotiable?: boolean;
         };
         ShopBriefDto: {
             /** Format: int64 */
