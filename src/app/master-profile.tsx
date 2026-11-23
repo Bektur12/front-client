@@ -149,7 +149,8 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 
 	return (
 		<View style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
-			<ScreenHeader title={t('Мои услуги')} />
+			{/* Ещё не мастер — «Назад» к выбору роли: иначе «/» снова открывает эту регистрацию и выйти нельзя. */}
+			<ScreenHeader title={t('Мои услуги')} onBack={initial ? undefined : () => resetTo('/role')} />
 
 			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" ref={scroll} contentContainerStyle={{ paddingTop: 8, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 				<QueryErrorBanner error={error ?? save.error} />
