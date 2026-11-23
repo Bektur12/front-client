@@ -16,7 +16,7 @@ import { useMyShop, useRegisterShop, useRelocateShop } from '@/api/shop'
 import { useSession } from '@/store/useSession'
 import { useClaimContainer } from '@/api/complaints'
 import { ApiError } from '@/lib/api'
-import type { Brand } from '@/api/types'
+import type { Brand, Category } from '@/api/types'
 import { t } from '@/i18n'
 import { KEYBOARD_DONE } from '@/components/keyboard-done'
 import { goBack, resetTo } from '@/lib/navigation'
@@ -36,6 +36,8 @@ const SIDE_NAMES: Record<Side, string> = {
 }
 /** Brand tiles before «Другие» — as in the mockup. */
 const TILES = 5
+/** Categories before «Другие». */
+const CATEGORY_CHIPS = 5
 
 /**
  * 11 «Где вы продаёте» — registration in one minute: on the Кудайберген market (row, container number), on another
@@ -67,6 +69,12 @@ export default function BoxSelectScreen() {
 	const toggleCategory = (id: number) =>
 		setPickedCategories((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]))
 	const [othersOpen, setOthersOpen] = useState(false)
+	const [otherCategoriesOpen, setOtherCategoriesOpen] = useState(false)
+	// Как с марками: пять на виду, остальные — в «Другие»; выбранные там тоже показываются пилюлями
+	const shownCategories = [
+		...categories.slice(0, CATEGORY_CHIPS),
+		...categories.slice(CATEGORY_CHIPS).filter((category) => pickedCategories.includes(category.id)),
+	]
 	// «Это мой контейнер» — a taken box that is actually yours.
 	const [claim, setClaim] = useState<{ id: number; number: number } | null>(null)
 	// «На рынке» — рынок из списка: у Кудайбергена ряд и контейнер, у остальных место текстом;
@@ -430,7 +438,21 @@ export default function BoxSelectScreen() {
 						{categories.length ? (
 							<>
 								<Label>{t('Что продаёте')}</Label>
-								<CategoryChips categories={categories} picked={pickedCategories} onToggle={toggleCategory} />
+								<View style={{ gap: 8 }}>
+									<CategoryChips categories={shownCategories} picked={pickedCategories} onToggle={toggleCategory} />
+									{categories.length > CATEGORY_CHIPS ? (
+										<Pressable
+											onPress={() => setOtherCategoriesOpen(true)}
+											accessibilityRole="button"
+											style={{ alignSelf: 'flex-start', height: 40, paddingHorizontal: 14, borderRadius: 20, borderWidth: 2, borderStyle: 'dashed', borderColor: c.dashedBrand, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+										>
+											<PlusIcon size={16} color={c.brandStrong} />
+											<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(700), color: c.brandStrong }}>
+												{t('Другие · {0}', categories.length - CATEGORY_CHIPS)}
+											</Text>
+										</Pressable>
+									) : null}
+								</View>
 							</>
 						) : null}
 					</>
@@ -451,6 +473,10 @@ export default function BoxSelectScreen() {
 					onPick={setMarketId}
 					onClose={() => setPickingMarket(false)}
 				/>
+			) : null}
+
+			{otherCategoriesOpen ? (
+				<OtherCategories categories={categories} picked={pickedCategories} onToggle={toggleCategory} onClose={() => setOtherCategoriesOpen(false)} />
 			) : null}
 
 			{othersOpen ? (
@@ -488,6 +514,58 @@ export default function BoxSelectScreen() {
 }
 
 /** «Другие» — all brands A–Я with search. */
+/** «Что продаёте» → «Другие»: все категории с галочками, как «Все марки». */
+function OtherCategories({
+	categories,
+	picked,
+	onToggle,
+	onClose,
+}: {
+	categories: Category[]
+	picked: number[]
+	onToggle: (id: number) => void
+	onClose: () => void
+}) {
+	const c = useColors()
+	return (
+		<BottomSheet
+			onClose={onClose}
+			maxHeight={0.8}
+			header={<Text style={{ fontSize: fs.h3, fontFamily: fontFamily(800), color: c.ink }}>{t('Что продаёте')}</Text>}
+			footer={<Button label={picked.length ? t('Готово · {0}', picked.length) : t('Готово')} onPress={onClose} />}
+		>
+			{categories.map((category) => {
+				const active = picked.includes(category.id)
+				return (
+					<Pressable
+						key={category.id}
+						onPress={() => onToggle(category.id)}
+						accessibilityRole="checkbox"
+						accessibilityState={{ checked: active }}
+						style={{ minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+					>
+						<Text style={{ flex: 1, fontSize: fs.lg, fontFamily: fontFamily(active ? 600 : 400), color: c.ink }}>{category.name}</Text>
+						<View
+							style={{
+								width: 24,
+								height: 24,
+								borderRadius: 7,
+								borderWidth: 2,
+								borderColor: active ? c.brand : c.border,
+								backgroundColor: active ? c.brand : 'transparent',
+								alignItems: 'center',
+								justifyContent: 'center',
+							}}
+						>
+							{active ? <TickIcon size={14} color={fixed.white} strokeWidth={3} /> : null}
+						</View>
+					</Pressable>
+				)
+			})}
+		</BottomSheet>
+	)
+}
+
 function OtherBrands({
 	brands,
 	picked,
