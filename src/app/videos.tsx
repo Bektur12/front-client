@@ -269,24 +269,24 @@ function FeedPage({
 						<ChatIcon size={20} color={fixed.white} strokeWidth={2.2} />
 						<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Заказать')}</Text>
 					</Pressable>
-					{item.shipsToRegions ? (
-						<Pressable
-							onPress={() => (signedIn ? router.push({ pathname: '/delivery', params: { partId: String(item.partId) } }) : openSignIn())}
-							style={{
-								flex: 1,
-								height: 52,
-								borderRadius: 14,
-								backgroundColor: fixed.white,
-								flexDirection: 'row',
-								alignItems: 'center',
-								justifyContent: 'center',
-								gap: 8,
-							}}
-						>
-							<TruckIcon size={20} color={c.ink} />
-							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Доставка')}</Text>
-						</Pressable>
-					) : null}
+					{/* доставка у каждого товара, как в карточке */}
+					<Pressable
+						onPress={() => (signedIn ? router.push({ pathname: '/delivery', params: { partId: String(item.partId) } }) : openSignIn())}
+						style={{
+							flex: 1,
+							height: 52,
+							borderRadius: 14,
+							backgroundColor: fixed.white,
+							flexDirection: 'row',
+							alignItems: 'center',
+							justifyContent: 'center',
+							gap: 8,
+						}}
+					>
+						{/* white button in both themes — dark label (the theme's ink is white in the dark theme) */}
+						<TruckIcon size={20} color={fixed.inkOnLight} />
+						<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.inkOnLight }}>{t('Доставка')}</Text>
+					</Pressable>
 				</View>
 			</View>
 			{/* After the bottom block: a long title makes it tall, and it must not take taps meant for these buttons. */}

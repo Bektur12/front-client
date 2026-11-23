@@ -355,7 +355,8 @@ export function CatalogScreen() {
 					bottom: 12,
 					height: 52,
 					borderRadius: 14,
-					backgroundColor: c.ink,
+					// dark pill in both themes: `ink` is near-white in the dark theme, and the white label vanished on it
+					backgroundColor: c.inverse,
 					paddingHorizontal: 16,
 					flexDirection: 'row',
 					alignItems: 'center',
