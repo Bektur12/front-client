@@ -87,3 +87,33 @@ export const TabButton = forwardRef(function TabButton(
 		</Pressable>
 	)
 })
+
+/**
+ * «＋» посередине меню: одна кнопка на все «создать» — найти запчасть, позвать мастера, «сломалась машина».
+ * Чуть приподнята над меню и залита фирменным цветом, чтобы её находили не читая.
+ */
+export function CenterActionButton({ onPress, icon: Icon, label }: { onPress: () => void; icon: ComponentType<IconProps>; label: string }) {
+	const c = useColors()
+	return (
+		<Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={6} style={{ flex: 1, alignItems: 'center' }}>
+			<View
+				style={{
+					width: 54,
+					height: 54,
+					marginTop: -10,
+					borderRadius: 27,
+					backgroundColor: c.brand,
+					alignItems: 'center',
+					justifyContent: 'center',
+					shadowColor: c.brand,
+					shadowOpacity: 0.35,
+					shadowOffset: { width: 0, height: 6 },
+					shadowRadius: 10,
+					elevation: 8,
+				}}
+			>
+				<Icon size={26} color={fixed.white} strokeWidth={2.6} />
+			</View>
+		</Pressable>
+	)
+}

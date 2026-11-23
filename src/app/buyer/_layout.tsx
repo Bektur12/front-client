@@ -1,15 +1,20 @@
+import { useState } from 'react'
 import { TabList, TabSlot, TabTrigger, Tabs } from 'expo-router/ui'
-import { TabBarContainer, TabButton } from '@/components/tab-bar'
+import { CenterActionButton, TabBarContainer, TabButton } from '@/components/tab-bar'
+import { QuickActionsSheet } from '@/components/quick-actions'
+import { PlusThinIcon } from '@/components/buyer-v23'
 import { useUnread } from '@/api/chats'
 import { ChatIcon, HomeIcon, MarketIcon, ProfileIcon, SearchIcon } from '@/components/icons'
 import { t } from '@/i18n'
 import { useSignedIn } from '@/api/catalog'
 
-/** Buyer tabs: Главная · Запчасти · Рынок (карта) · Чаты · Профиль. «Мои запросы» — на главной [03]. */
+/** Buyer tabs: Главная · Запчасти · ＋ · Рынок (карта) · Чаты · Профиль. «＋» — найти запчасть, мастер, «сломалась машина». */
 export default function BuyerLayout() {
 	// Unread chats for this side — counted on the server, kept live by the UNREAD event.
 	const signedIn = useSignedIn()
 	const unread = useUnread(signedIn).data?.asBuyer ?? 0
+	// «＋» посередине: найти запчасть, позвать мастера, «сломалась машина» — одним касанием с любой вкладки.
+	const [actions, setActions] = useState(false)
 
 	return (
 		<Tabs>
@@ -22,6 +27,7 @@ export default function BuyerLayout() {
 				<TabTrigger name="parts" asChild>
 					<TabButton icon={SearchIcon} label={t('Запчасти')} />
 				</TabTrigger>
+				<CenterActionButton icon={PlusThinIcon} label={t('Найти запчасть, мастера или помощь')} onPress={() => setActions(true)} />
 				<TabTrigger name="market" asChild>
 					<TabButton icon={MarketIcon} label={t('Рынок')} />
 				</TabTrigger>
@@ -40,6 +46,7 @@ export default function BuyerLayout() {
 				<TabTrigger name="chats" href="/buyer/chats" />
 				<TabTrigger name="profile" href="/buyer/profile" />
 			</TabList>
+			{actions ? <QuickActionsSheet onClose={() => setActions(false)} /> : null}
 		</Tabs>
 	)
 }
