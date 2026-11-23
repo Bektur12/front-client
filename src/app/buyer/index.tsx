@@ -1,15 +1,16 @@
 import { useEffect, useRef } from 'react'
-import { RefreshControl, ScrollView, View, type ScrollViewInstance } from 'react-native'
+import { Pressable, RefreshControl, ScrollView, Text, View, type ScrollViewInstance } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { LinearGradient } from 'expo-linear-gradient'
 import { router, useScrollToTop } from 'expo-router'
 import { usePullRefresh } from '@/lib/use-pull-refresh'
 import { QueryErrorBanner, Skeleton, SkeletonRepeat } from '@/components/ui'
-import { Caps } from '@/components/buyer-v23'
+import { Caps, LoupeIcon } from '@/components/buyer-v23'
 import { MarketVideos } from '@/components/market-videos'
 import { MarketStrip } from '@/components/market-strip'
 import { RecentlyViewed } from '@/components/recently-viewed'
 import { MyRequestItem, mergeRequests } from '@/components/my-requests'
-import { useColors } from '@/theme'
+import { fixed, fontFamily, fs, useColors } from '@/theme'
 import { useMe } from '@/api/me'
 import { useCars } from '@/api/garage'
 import { useMyRequests } from '@/api/requests'
@@ -17,6 +18,7 @@ import { flattenPages } from '@/api/pagination'
 import { useMyServiceRequests } from '@/api/services'
 import { useSignedIn } from '@/api/catalog'
 import { t } from '@/i18n'
+import { requireSignIn } from '@/components/sign-in-prompt'
 import { Greeting } from '@/components/greeting'
 import { GarageNudge } from '@/components/garage-nudge'
 import { useRoadsidePack } from '@/store/useRoadsidePack'
@@ -60,7 +62,46 @@ export default function BuyerHomeScreen() {
 				showsVerticalScrollIndicator={false}
 				refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={c.muted} />}
 			>
-				{/* «Найти запчасть», «Нужен мастер», «Сломалась машина» — в «＋» посередине меню, здесь не дублируем. */}
+				{/* Главное действие — «Найти запчасть»; мастер и «сломалась машина» — в «＋». */}
+				<Pressable onPress={() => requireSignIn() && router.push('/search-part')}>
+					<LinearGradient
+						colors={fixed.brandGradient}
+						start={{ x: 0.25, y: 0 }}
+						end={{ x: 0.75, y: 1 }}
+						style={{
+							height: 108,
+							borderRadius: 24,
+							paddingHorizontal: 18,
+							flexDirection: 'row',
+							alignItems: 'center',
+							gap: 14,
+							overflow: 'hidden',
+							shadowColor: fixed.brandShadow,
+							shadowOpacity: 0.32,
+							shadowOffset: { width: 0, height: 14 },
+							shadowRadius: 15,
+							elevation: 12,
+						}}
+					>
+						<View
+							style={{
+								width: 46,
+								height: 46,
+								borderRadius: 14,
+								backgroundColor: 'rgba(255,255,255,0.18)',
+								alignItems: 'center',
+								justifyContent: 'center',
+							}}
+						>
+							<LoupeIcon size={24} color={fixed.white} strokeWidth={2.6} />
+						</View>
+						<View style={{ flex: 1, gap: 3 }}>
+							<Text style={{ fontSize: fs.h3, lineHeight: 29, fontFamily: fontFamily(800), letterSpacing: -0.4, color: fixed.white }}>{t('Найти запчасть')}</Text>
+							<Text style={{ fontSize: fs.md, lineHeight: 20, fontFamily: fontFamily(500), color: 'rgba(255,255,255,0.88)' }}>{t('Фото или голосом — продавцы ответят с ценой')}</Text>
+						</View>
+					</LinearGradient>
+				</Pressable>
+
 				<MarketStrip />
 
 				<MarketVideos />
