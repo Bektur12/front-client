@@ -15,7 +15,7 @@ import { resolveUrl } from '@/lib/api'
 import { formatDay } from '@/lib/format'
 import { COUNTRY_CODE, formatE164, formatLocalPhone, isValidLocalPhone, toE164 } from '@/lib/phone'
 import { useSettings, useUpdateMe, useUpdateSettings } from '@/api/me'
-import { useAddShopPhoto, useMyShop, useSetShopAvatar, useSetShopCover, useUpdateShop } from '@/api/shop'
+import { useAddShopPhoto, useMyShop, useSetShopCover, useUpdateShop } from '@/api/shop'
 import { usePhotoUploads } from '@/api/media'
 import { useMyParts, useMyPartsSummary } from '@/api/parts'
 import { flattenPages } from '@/api/pagination'
@@ -29,7 +29,7 @@ import { KEYBOARD_DONE } from '@/components/keyboard-done'
 import { formatSchedule } from '@/lib/hours'
 
 /**
- * 15 «Мой бокс» — a profile like on social apps: avatar (tap — change), counters, name and place, my brands,
+ * 15 «Мой бокс» — a profile like on social apps: the banner (tap — change), counters, name and place, my brands,
  * «Изменить» / «Выложить», and a grid of my posts (video ones — the poster with ▶). Settings and the 30-day numbers
  * live behind ☰.
  */
@@ -44,15 +44,12 @@ export default function SellerBoxScreen() {
 	const parts = useMyParts('ALL')
 	const items = flattenPages(parts.data)
 	const pull = usePullRefresh(() => [shop.refetch(), parts.refetch(), summary.refetch()])
-	const setAvatar = useSetShopAvatar()
-	const avatarUpload = usePhotoUploads('AVATAR', 1, (photo) => setAvatar.mutateAsync(photo.id))
 	const [editing, setEditing] = useState(false)
 	const [menu, setMenu] = useState(false)
 
 	const data = shop.data
 	const tile = (width - 4) / 3
 	const place = data ? (data.location ? t('Ряд {0} · Контейнер {1}', data.location.rowCode, data.location.number) : (data.address ?? '')) : ''
-	const avatarBusy = avatarUpload.photos.length > 0 || setAvatar.isPending
 	// The banner on the shop profile [30] is the first photo of the place — added here and made the cover.
 	const addPhoto = useAddShopPhoto()
 	const setCover = useSetShopCover()
@@ -92,48 +89,8 @@ export default function SellerBoxScreen() {
 					</View>
 				) : null}
 			</Pressable>
-			<View style={{ marginTop: -56, flexDirection: 'row', alignItems: 'flex-end', gap: 16 }}>
-				{shop.isLoading ? (
-					<Skeleton width={96} height={96} radius={48} />
-				) : (
-				<Pressable onPress={() => avatarUpload.pick('library')} disabled={avatarBusy}>
-						<View
-							style={{
-								width: 96,
-								height: 96,
-								borderRadius: 48,
-								borderWidth: 4,
-								borderColor: c.surface,
-								overflow: 'hidden',
-								backgroundColor: c.brandTint,
-								alignItems: 'center',
-								justifyContent: 'center',
-							}}
-						>
-							{data?.avatarUrl ? (
-								<Image source={{ uri: resolveUrl(data.avatarUrl) }} style={{ width: '100%', height: '100%' }} />
-							) : (
-								<Text style={{ fontSize: fs.hero, fontFamily: fontFamily(700), color: c.brandStrong }}>{data?.name.charAt(0).toUpperCase() ?? ' '}</Text>
-							)}
-							{avatarBusy ? (
-								<View
-									style={{
-										position: 'absolute',
-										left: 0,
-										top: 0,
-										right: 0,
-										bottom: 0,
-										backgroundColor: 'rgba(0,0,0,0.35)',
-										alignItems: 'center',
-										justifyContent: 'center',
-									}}
-								>
-									<ActivityIndicator color={fixed.white} />
-								</View>
-							) : null}
-						</View>
-	</Pressable>
-				)}
+			{/* Без аватарки: у продавца только баннер выше — покупатели видят его и в карточках, и в чатах. */}
+			<View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 16 }}>
 				<View style={{ flex: 1, flexDirection: 'row', paddingBottom: 6 }}>
 					<Counter value={summary.data ? String(summary.data.all) : '—'} label={t('товаров')} />
 					<Counter value={data?.reviewsCount ? data.rating.toFixed(1) : '—'} label={t('рейтинг')} star={Boolean(data?.reviewsCount)} />
@@ -145,7 +102,7 @@ export default function SellerBoxScreen() {
 				<Text style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.danger }}>{(addPhoto.error ?? setCover.error)?.message}</Text>
 			) : null}
 
-			<QueryErrorBanner error={shop.error ?? parts.error ?? setAvatar.error} onRetry={() => shop.refetch()} />
+			<QueryErrorBanner error={shop.error ?? parts.error} onRetry={() => shop.refetch()} />
 			<AccountStatusBanner
 				status={data?.status}
 				reason={data?.blockReason}

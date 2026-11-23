@@ -128,21 +128,7 @@ export default function SellerProfileForBuyerScreen() {
 					</View>
 				</View>
 
-				<View style={{ marginTop: -44, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-					{shop?.avatarUrl ? (
-						<Image
-							source={{ uri: resolveUrl(shop.avatarUrl) }}
-							style={{ width: 88, height: 88, borderRadius: 44, borderWidth: 4, borderColor: c.surface }}
-						/>
-					) : loading ? (
-						<View style={{ borderRadius: 48, borderWidth: 4, borderColor: c.surface }}>
-							<Skeleton width={80} height={80} radius={40} />
-						</View>
-					) : (
-						<View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: c.fill, borderWidth: 4, borderColor: c.surface }} />
-					)}
-				</View>
-
+				{/* Только баннер, без круглой аватарки поверх: она повторяла ту же картинку второй раз. */}
 				<View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 14 }}>
 					<QueryErrorBanner error={query.error} onRetry={() => query.refetch()} />
 
