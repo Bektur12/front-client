@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { ModalSheet } from '@/components/master-v23'
 import { ChevronIcon, LoupeIcon, TowIcon, WrenchIcon } from '@/components/buyer-v23'
+import { MarketIcon } from '@/components/icons'
 import { requireSignIn } from '@/components/sign-in-prompt'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
 import { t } from '@/i18n'
@@ -10,7 +11,7 @@ import { t } from '@/i18n'
 type Icon = ComponentType<{ size?: number; color: string; strokeWidth?: number }>
 
 /**
- * Меню «＋» из нижней навигации: три главных действия покупателя — одной строкой каждое, без лишнего.
+ * Меню «＋» из нижней навигации: главные действия покупателя — одной строкой каждое, без лишнего.
  * «Сломалась машина» — красным: это срочно, и справочник работает даже без интернета.
  */
 export function QuickActionsSheet({ onClose }: { onClose: () => void }) {
@@ -33,6 +34,12 @@ export function QuickActionsSheet({ onClose }: { onClose: () => void }) {
 					title={t('Нужен мастер')}
 					sub={t('Ремонт, шиномонтаж, эвакуатор')}
 					onPress={() => run(() => requireSignIn(t('Чтобы позвать мастера, войдите по номеру телефона.')) && router.push('/service-new'))}
+				/>
+				<Action
+					icon={MarketIcon}
+					title={t('Карта рынка')}
+					sub={t('Найти контейнер и пройти к нему')}
+					onPress={() => run(() => router.navigate('/buyer/market'))}
 				/>
 				<Action
 					icon={TowIcon}
