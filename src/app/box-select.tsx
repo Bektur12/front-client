@@ -5,7 +5,8 @@ import * as Location from 'expo-location'
 import { askForPushAt } from '@/lib/push'
 import { BottomSheet, BrandLogo, Button, QueryErrorBanner, ScreenHeader, toast } from '@/components/ui'
 import { BrandTile, Label, PlusIcon, TickIcon } from '@/components/seller-v23'
-import { LocateIcon, SearchIcon } from '@/components/icons'
+import { LocateIcon, MarketIcon, SearchIcon, StoreIcon } from '@/components/icons'
+import { SelectField, SelectSheet } from '@/components/select-sheet'
 import { addressAt, currentCoords } from '@/lib/locate'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
 import { type Side, useAddContainer, useAddRow, useMarkets, useRowContainers, useRows } from '@/api/market'
@@ -68,13 +69,22 @@ export default function BoxSelectScreen() {
 	const [othersOpen, setOthersOpen] = useState(false)
 	// «Это мой контейнер» — a taken box that is actually yours.
 	const [claim, setClaim] = useState<{ id: number; number: number } | null>(null)
-	// Кудайберген — row and container; another market — which one and the place as text; a shop / centre (Kia,
-	// Toyota…) — name, address and the point.
-	const [where, setWhere] = useState<'KUDAIBERGEN' | 'MARKET' | 'STORE'>('KUDAIBERGEN')
+	// «На рынке» — рынок из списка: у Кудайбергена ряд и контейнер, у остальных место текстом;
+	// «Магазин или центр» (Kia, Toyota…) — название, адрес и точка.
+	const [where, setWhere] = useState<'MARKET' | 'STORE'>('MARKET')
+	// Кудайберген (со схемой) первым, дальше по алфавиту
+	const marketList = useMarkets().data
+	const markets = useMemo(
+		() => [...(marketList ?? [])].sort((a, b) => Number(b.hasScheme) - Number(a.hasScheme) || a.name.localeCompare(b.name)),
+		[marketList],
+	)
+	const [pickedMarketId, setMarketId] = useState<number | null>(null)
+	const [pickingMarket, setPickingMarket] = useState(false)
+	const market = markets.find((item) => item.id === pickedMarketId) ?? markets[0]
+	const marketId = market?.id ?? null
 	const store = !hasShop && where === 'STORE'
-	const otherMarket = !hasShop && where === 'MARKET'
-	const markets = (useMarkets().data ?? []).filter((market) => !market.hasScheme)
-	const [marketId, setMarketId] = useState<number | null>(null)
+	// рынок без схемы — место текстом; пока список рынков не пришёл, показываем Кудайберген
+	const otherMarket = !hasShop && where === 'MARKET' && Boolean(market && !market.hasScheme)
 	const [manualPlace, setManualPlace] = useState('')
 	const [name, setName] = useState('')
 	const [address, setAddress] = useState('')
@@ -194,43 +204,56 @@ export default function BoxSelectScreen() {
 				<QueryErrorBanner error={rows.error ?? detail.error ?? brands.error} onRetry={() => rows.refetch()} />
 
 				{hasShop ? null : (
-					<View style={{ flexDirection: 'row', padding: 4, borderRadius: 14, backgroundColor: c.fill, gap: 4 }}>
-						{([
-							{ value: 'KUDAIBERGEN', label: t('Кудайберген') },
-							{ value: 'MARKET', label: t('Другой рынок') },
-							{ value: 'STORE', label: t('Магазин, центр') },
-						] as const).map((option) => {
-							const active = where === option.value
-							return (
-								<Pressable
-									key={option.value}
-									onPress={() => setWhere(option.value)}
-									style={{ flex: 1, height: 40, borderRadius: 11, backgroundColor: active ? c.card : 'transparent', alignItems: 'center', justifyContent: 'center' }}
-								>
-									<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.md, fontFamily: fontFamily(active ? 700 : 600), color: active ? c.ink : c.muted }}>{option.label}</Text>
-								</Pressable>
-							)
-						})}
-					</View>
-				)}
-
-				{otherMarket ? (
 					<>
-						<Label>{t('Рынок')}</Label>
-						<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-							{markets.map((market) => {
-								const active = marketId === market.id
+						<View style={{ flexDirection: 'row', padding: 4, borderRadius: 16, backgroundColor: c.fill, gap: 4 }}>
+							{([
+								{ value: 'MARKET', label: t('На рынке'), icon: MarketIcon },
+								{ value: 'STORE', label: t('Магазин или центр'), icon: StoreIcon },
+							] as const).map(({ value, label, icon: Icon }) => {
+								const active = where === value
 								return (
 									<Pressable
-										key={market.id}
-										onPress={() => setMarketId(market.id)}
-										style={{ height: 44, paddingHorizontal: 16, borderRadius: 12, borderWidth: 1.5, borderColor: active ? c.brand : c.border, backgroundColor: active ? c.brand : c.card, alignItems: 'center', justifyContent: 'center' }}
+										key={value}
+										onPress={() => setWhere(value)}
+										accessibilityRole="tab"
+										accessibilityState={{ selected: active }}
+										style={{
+											flex: 1,
+											height: 48,
+											borderRadius: 12,
+											backgroundColor: active ? c.card : 'transparent',
+											flexDirection: 'row',
+											alignItems: 'center',
+											justifyContent: 'center',
+											gap: 8,
+											shadowColor: fixed.shadow,
+											shadowOpacity: active ? 0.08 : 0,
+											shadowOffset: { width: 0, height: 2 },
+											shadowRadius: 6,
+											elevation: active ? 2 : 0,
+										}}
 									>
-										<Text style={{ fontSize: fs.md, fontFamily: fontFamily(active ? 700 : 600), color: active ? fixed.white : c.ink }}>{market.name}</Text>
+										<Icon size={20} color={active ? c.brandStrong : c.muted} />
+										<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.base, fontFamily: fontFamily(active ? 700 : 600), color: active ? c.ink : c.muted }}>
+											{label}
+										</Text>
 									</Pressable>
 								)
 							})}
 						</View>
+						{where === 'MARKET' && market ? (
+							<SelectField
+								label={t('Рынок')}
+								value={market.name}
+								placeholder={t('Выберите рынок')}
+								onPress={() => setPickingMarket(true)}
+							/>
+						) : null}
+					</>
+				)}
+
+				{otherMarket ? (
+					<>
 						<Label>{t('Где вы на рынке')}</Label>
 						<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 							value={manualPlace}
@@ -415,6 +438,20 @@ export default function BoxSelectScreen() {
 
 				{error ? <Text style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.danger }}>{error.message}</Text> : null}
 			</ScrollView>
+
+			{pickingMarket ? (
+				<SelectSheet
+					title={t('Рынок')}
+					options={markets.map((item) => ({
+						key: item.id,
+						label: item.name,
+						sub: item.hasScheme ? t('Ряд и номер контейнера') : t('Место напишете сами'),
+					}))}
+					selected={marketId}
+					onPick={setMarketId}
+					onClose={() => setPickingMarket(false)}
+				/>
+			) : null}
 
 			{othersOpen ? (
 				<OtherBrands brands={all} picked={picked} onToggle={toggle} onClose={() => setOthersOpen(false)} />
