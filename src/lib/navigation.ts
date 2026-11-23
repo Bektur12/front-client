@@ -9,3 +9,13 @@ export function goBack(fallback: Href = '/') {
 	if (router.canGoBack()) router.back()
 	else router.replace(fallback)
 }
+
+/**
+ * Open a screen with nothing behind it: sign-in → role → registration → home. Without this the catalog the guest
+ * signed in from stays under the registration, and «Назад» or a swipe from the edge drops a new seller onto the
+ * buyer's screens.
+ */
+export function resetTo(href: Href) {
+	if (router.canDismiss()) router.dismissAll()
+	router.replace(href)
+}

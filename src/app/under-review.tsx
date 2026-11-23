@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import { Text, View } from 'react-native'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Button } from '@/components/ui'
 import { ClockIcon } from '@/components/icons'
 import { fontFamily, fs, useColors } from '@/theme'
 import { askForPushAt } from '@/lib/push'
+import { resetTo } from '@/lib/navigation'
 import { t } from '@/i18n'
 
 /**
@@ -40,7 +41,7 @@ export default function UnderReviewScreen() {
 				</Text>
 			</View>
 			<View style={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 12 }}>
-				<Button label={t('Понятно')} onPress={() => router.replace(shop ? '/seller' : '/master')} />
+				<Button label={t('Понятно')} onPress={() => resetTo(shop ? '/seller' : '/master')} />
 			</View>
 		</View>
 	)

@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
 import * as Location from 'expo-location'
 import { askForPushAt } from '@/lib/push'
 import { BottomSheet, BrandLogo, Button, QueryErrorBanner, ScreenHeader, toast } from '@/components/ui'
@@ -19,7 +18,7 @@ import { ApiError } from '@/lib/api'
 import type { Brand } from '@/api/types'
 import { t } from '@/i18n'
 import { KEYBOARD_DONE } from '@/components/keyboard-done'
-import { goBack } from '@/lib/navigation'
+import { goBack, resetTo } from '@/lib/navigation'
 
 /** Rows in the order of the mockup grid [11]; rows the mockup doesn't know go after them. */
 const ROW_ORDER = ['19', '18', '17', '16', '15', '14', '13', '12', '11', '10', '9', '8', '7', '6', '5', '4', '1', t('К'), t('Ц'), t('Л'), t('Н'), t('Я'), t('С'), t('Ж'), t('Д'), t('В'), t('Ю'), t('Х'), t('У')]
@@ -159,12 +158,12 @@ export default function BoxSelectScreen() {
 			if (!point) return
 			register.mutate(
 				{ name: name.trim(), address: address.trim(), lat: point.lat, lng: point.lng, brandIds: picked, categoryIds: pickedCategories },
-				{ onSuccess: (shop) => router.replace(shop.status === 'PENDING_VERIFICATION' ? '/under-review?kind=shop' : '/seller') }
+				{ onSuccess: (shop) => resetTo(shop.status === 'PENDING_VERIFICATION' ? '/under-review?kind=shop' : '/seller') }
 			)
 			return
 		}
 		const done = (shop: { status: string }) =>
-			shop.status === 'PENDING_VERIFICATION' ? router.replace('/under-review?kind=shop') : (router.replace('/seller'), askForPushAt('shop'))
+			shop.status === 'PENDING_VERIFICATION' ? resetTo('/under-review?kind=shop') : (resetTo('/seller'), askForPushAt('shop'))
 		if (otherMarket) {
 			if (!marketId) return
 			register.mutate(
@@ -184,7 +183,8 @@ export default function BoxSelectScreen() {
 
 	return (
 		<View style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
-			<ScreenHeader title={hasShop ? t('Ваш контейнер') : t('Где вы продаёте')} />
+			{/* Регистрация: «Назад» — к выбору роли, а не на экраны покупателя. */}
+			<ScreenHeader title={hasShop ? t('Ваш контейнер') : t('Где вы продаёте')} onBack={hasShop ? undefined : () => resetTo('/role')} />
 
 			<ScrollView
 				contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }}

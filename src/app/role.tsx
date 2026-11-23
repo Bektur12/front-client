@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Button } from '@/components/ui'
 import { BoxOutlineIcon, LoupeIcon, TickIcon, WrenchIcon } from '@/components/buyer-v23'
@@ -10,6 +9,7 @@ import { fixed, fontFamily, fs, useColors } from '@/theme'
 import { useSetRole } from '@/api/me'
 import type { UserRole } from '@/api/types'
 import { t } from '@/i18n'
+import { resetTo } from '@/lib/navigation'
 import { useSession } from '@/store/useSession'
 
 const ROLES = [
@@ -100,8 +100,8 @@ export default function RoleScreen() {
 							// Buyer goes home [03] (the car comes from the tech passport [04]); seller registers the box [11];
 							// master fills «Мой сервис» [20].
 							onSuccess: (me) => {
-								if (role === 'MASTER') router.replace(me.hasMaster ? '/master' : { pathname: '/master-profile', params: { first: '1' } })
-								else router.replace(role === 'BUYER' ? '/buyer' : me.hasShop ? '/seller' : '/box-select')
+								if (role === 'MASTER') resetTo(me.hasMaster ? '/master' : { pathname: '/master-profile', params: { first: '1' } })
+								else resetTo(role === 'BUYER' ? '/buyer' : me.hasShop ? '/seller' : '/box-select')
 							},
 						})
 					}

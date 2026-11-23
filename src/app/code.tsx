@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Keyboard, Pressable, Text, TextInput, View, type TextInputInstance } from 'react-native'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { ChevronLeftIcon } from '@/components/icons'
 import { AUTH_FIELD_HEIGHT, AuthLayout } from '@/components/auth-layout'
 import { fontFamily, fs, useColors } from '@/theme'
@@ -10,7 +10,7 @@ import { useSendOtp, useVerifyOtp } from '@/api/auth'
 import { homeHref } from '@/store/useSession'
 import { t } from '@/i18n'
 import { KEYBOARD_DONE } from '@/components/keyboard-done'
-import { goBack } from '@/lib/navigation'
+import { goBack, resetTo } from '@/lib/navigation'
 
 const CODE_LENGTH = 4
 
@@ -42,7 +42,7 @@ export default function CodeScreen() {
 		verify.mutate(
 			{ phone, code },
 			{
-				onSuccess: ({ user }) => router.replace(homeHref(user)),
+				onSuccess: ({ user }) => resetTo(homeHref(user)),
 				onError: () => setCode(''),
 			}
 		)

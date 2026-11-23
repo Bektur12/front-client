@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View,
 import { askForPushAt } from '@/lib/push'
 import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import * as Location from 'expo-location'
 import { addressAt, currentCoords } from '@/lib/locate'
 import { BrandLogo, Button, Chip, QueryErrorBanner, ScreenHeader, SectionLabel, ServiceGrid, Skeleton, toast, Toggle } from '@/components/ui'
@@ -19,7 +19,7 @@ import { MARKET_POINT } from '@/data/service-types'
 import { ORIGINS } from '@/store/useServiceDraft'
 import { t } from '@/i18n'
 import { KEYBOARD_DONE } from '@/components/keyboard-done'
-import { goBack } from '@/lib/navigation'
+import { goBack, resetTo } from '@/lib/navigation'
 
 interface Form {
 	name: string
@@ -316,8 +316,8 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 									!first
 										? (toast(t('Профиль сохранён')), goBack())
 										: master.status === 'PENDING_VERIFICATION'
-											? router.replace('/under-review?kind=master')
-											: (toast(t('Профиль сохранён')), router.replace('/master'), askForPushAt('master')),
+											? resetTo('/under-review?kind=master')
+											: (toast(t('Профиль сохранён')), resetTo('/master'), askForPushAt('master')),
 							}
 						)
 					}
