@@ -151,7 +151,7 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 		<View style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
 			<ScreenHeader title={t('Мои услуги')} />
 
-			<ScrollView ref={scroll} contentContainerStyle={{ paddingTop: 8, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" ref={scroll} contentContainerStyle={{ paddingTop: 8, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 				<QueryErrorBanner error={error ?? save.error} />
 
 				{/* Not on the mockup: the name buyers see on offers [37] — asked once, on the first entry. */}

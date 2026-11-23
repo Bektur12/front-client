@@ -70,39 +70,10 @@ export function CourierSheet({ shop, onClose }: { shop: Shop; onClose: () => voi
 // ─── Выбор службы ────────────────────────────────────────────────────────────
 
 function Choose({ shop, onYldam, onDone }: { shop: Shop; onYldam: () => void; onDone: () => void }) {
-	const scheme = useMarketScheme().data
 	const tariffs = useDeliveryTariffs().data
-	const [opening, setOpening] = useState(false)
+	const { opening, call } = useYandexCourier(shop)
 	const yldamName = tariffs?.courierName ?? t('Ылдам Экспресс')
-
-	const pickup = useMemo<Point | null>(() => {
-		const found = shop.location ? findContainer(scheme, shop.location.containerId) : null
-		if (found) {
-			const [lon, lat] = schemaToGeo(found.container.x, found.container.y)
-			return { lat, lon }
-		}
-		return shop.lat != null && shop.lng != null ? { lat: shop.lat, lon: shop.lng } : null
-	}, [scheme, shop])
-
-	const yandex = async () => {
-		if (opening) return
-		setOpening(true)
-		try {
-			// Куда — где покупатель сейчас; нет разрешения или GPS — адрес введёт в самом Яндекс Go.
-			let destination: Point | null = null
-			try {
-				const permission = await Location.requestForegroundPermissionsAsync()
-				if (permission.granted) {
-					const coords = await currentCoords()
-					destination = { lat: coords.latitude, lon: coords.longitude }
-				}
-			} catch {}
-			await openYandexGo(pickup, destination)
-			onDone()
-		} finally {
-			setOpening(false)
-		}
-	}
+	const yandex = () => call().then(onDone)
 
 	return (
 		<View style={{ paddingHorizontal: 16, gap: 10 }}>
@@ -112,8 +83,47 @@ function Choose({ shop, onYldam, onDone }: { shop: Shop; onYldam: () => void; on
 	)
 }
 
-const YANDEX_LOGO = require('../../assets/images/couriers/yandex-go.jpg')
-const YLDAM_LOGO = require('../../assets/images/couriers/yldam.jpg')
+/**
+ * «Яндекс курьер»: Яндекс Go с маршрутом от контейнера продавца (или адреса магазина) до того места, где покупатель сейчас.
+ * Нет разрешения или GPS — адрес «куда» введут в самом Яндекс Go.
+ */
+export function useYandexCourier(shop: Shop | null | undefined) {
+	const scheme = useMarketScheme().data
+	const [opening, setOpening] = useState(false)
+
+	const pickup = useMemo<Point | null>(() => {
+		if (!shop) return null
+		const found = shop.location ? findContainer(scheme, shop.location.containerId) : null
+		if (found) {
+			const [lon, lat] = schemaToGeo(found.container.x, found.container.y)
+			return { lat, lon }
+		}
+		return shop.lat != null && shop.lng != null ? { lat: shop.lat, lon: shop.lng } : null
+	}, [scheme, shop])
+
+	const call = async () => {
+		if (opening) return
+		setOpening(true)
+		try {
+			let destination: Point | null = null
+			try {
+				const permission = await Location.requestForegroundPermissionsAsync()
+				if (permission.granted) {
+					const coords = await currentCoords()
+					destination = { lat: coords.latitude, lon: coords.longitude }
+				}
+			} catch {}
+			await openYandexGo(pickup, destination)
+		} finally {
+			setOpening(false)
+		}
+	}
+
+	return { opening, call }
+}
+
+export const YANDEX_LOGO = require('../../assets/images/couriers/yandex-go.jpg')
+export const YLDAM_LOGO = require('../../assets/images/couriers/yldam.jpg')
 
 function Option({ logo, title, sub, onPress, loading, disabled }: { logo: number; title: string; sub: string; onPress: () => void; loading?: boolean; disabled?: boolean }) {
 	return (

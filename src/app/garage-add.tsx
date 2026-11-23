@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { BottomSheet, BrandLogo, Button, QueryErrorBanner, ScreenHeader, toast } from '@/components/ui'
 import { SearchIcon } from '@/components/icons'
@@ -62,6 +62,7 @@ export default function GarageAddScreen() {
 	const model = models.data?.find((m) => m.id === modelId)
 
 	const pickBrand = (next: Brand) => {
+		Keyboard.dismiss()
 		setBrand(next)
 		setModelId(null)
 		setYear(null)
@@ -93,7 +94,7 @@ export default function GarageAddScreen() {
 		<View style={{ flex: 1, backgroundColor: c.surface }}>
 			<ScreenHeader inset title={once ? t('Другая машина') : t('Добавить машину')} />
 
-			<ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 14 }} showsVerticalScrollIndicator={false}>
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 14 }} showsVerticalScrollIndicator={false}>
 				<View
 					style={{
 						height: 52,

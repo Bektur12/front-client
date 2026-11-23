@@ -84,7 +84,7 @@ export function ChatList({ as, also }: { as: ChatListAs; also?: ChatListAs }) {
 				style={{ marginHorizontal: 16, marginBottom: 12 }}
 			/>
 
-			<FlatList
+			<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag"
 				ref={list}
 				data={shown}
 				keyboardShouldPersistTaps="handled"

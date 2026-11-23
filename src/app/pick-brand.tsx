@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native'
+import { ActivityIndicator, Keyboard, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { QueryErrorBanner, ScreenHeader } from '@/components/ui'
@@ -52,7 +52,7 @@ export default function PickBrandScreen() {
 		<View style={{ flex: 1, backgroundColor: c.surface }}>
 			<ScreenHeader inset title={t('Марка авто')} />
 
-			<ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 14 }} showsVerticalScrollIndicator={false}>
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 14 }} showsVerticalScrollIndicator={false}>
 				<View
 					style={{
 						height: 52,
@@ -89,6 +89,7 @@ export default function PickBrandScreen() {
 							<Pressable
 								key={b.id}
 								onPress={() => {
+									Keyboard.dismiss()
 									setBrand(b)
 									setModelId(null)
 								}}
@@ -123,6 +124,7 @@ export default function PickBrandScreen() {
 						<Pressable
 							key={b.id}
 							onPress={() => {
+								Keyboard.dismiss()
 								setBrand(b)
 								setModelId(null)
 							}}

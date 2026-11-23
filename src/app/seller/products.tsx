@@ -10,7 +10,7 @@ import { CameraIcon, PlusIcon, SearchIcon } from '@/components/icons'
 import { ReelsIcon } from '@/components/video-v23'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
 import { resolveUrl } from '@/lib/api'
-import { formatNumber, formatPrice, plural } from '@/lib/format'
+import { formatNumber, formatPartPrice, formatPrice, plural } from '@/lib/format'
 import { flattenPages } from '@/api/pagination'
 import { useDeletePart, useMyParts, useMyPartsSummary } from '@/api/parts'
 import { confirmDeletePart } from '@/lib/delete-part'
@@ -75,7 +75,7 @@ export default function SellerProductsScreen() {
 				</Pressable>
 			</View>
 
-			<FlatList
+			<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
 				ref={list}
 				data={items}
 				keyExtractor={(item) => String(item.id)}
@@ -246,7 +246,7 @@ function PartRow({ part }: { part: MyPartItem }) {
 					{part.brands[0] ? <BrandLogo brand={part.brands[0]} size={18} /> : null}
 				</View>
 				<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-					<Text style={{ fontSize: fs.xl, fontFamily: fontFamily(800), color: c.ink }}>{formatPrice(part.price) || '—'}</Text>
+					<Text style={{ fontSize: fs.xl, fontFamily: fontFamily(800), color: c.ink }}>{(part.status === 'DRAFT' ? formatPrice(part.price) : formatPartPrice(part.price)) || '—'}</Text>
 					<Badge label={badge.label} tone={badge.tone} />
 				</View>
 			</View>

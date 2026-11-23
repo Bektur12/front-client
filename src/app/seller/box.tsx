@@ -211,7 +211,7 @@ export default function SellerBoxScreen() {
 				</Pressable>
 			</View>
 
-			<FlatList
+			<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
 				ref={list}
 				data={items}
 				keyExtractor={(item) => String(item.id)}

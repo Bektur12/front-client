@@ -10,7 +10,7 @@ import { useVideoViewer } from '@/store/useVideoViewer'
 import { MarketVideos } from '@/components/market-videos'
 import { RecentlyViewed } from '@/components/recently-viewed'
 import { resolveUrl } from '@/lib/api'
-import { countLabel, formatPrice, plural } from '@/lib/format'
+import { countLabel, formatPartPrice, plural } from '@/lib/format'
 import { useSearchParts, useSignedIn } from '@/api/catalog'
 import { useCategories } from '@/api/directory'
 import { useCars } from '@/api/garage'
@@ -19,7 +19,7 @@ import { type CatalogSort, toPartFilters, useCatalogFilters } from '@/store/useC
 import { useSession } from '@/store/useSession'
 import { useRecentSearches } from '@/store/useRecentSearches'
 import { briefPlace } from '@/lib/shop-place'
-import { MarketChips } from '@/components/market-chips'
+import { MarketChips, MarketFilterBanner } from '@/components/market-chips'
 import { t } from '@/i18n'
 import { KEYBOARD_DONE } from '@/components/keyboard-done'
 import { requireSignIn } from '@/components/sign-in-prompt'
@@ -211,6 +211,7 @@ export function CatalogScreen() {
 			</ScrollView>
 
 			<MarketChips value={f.marketId} onChange={f.setMarket} />
+			<MarketFilterBanner marketId={f.marketId} />
 
 			<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
 				{[{ id: null, name: t('Все') }, ...(categories.data ?? [])].map((category) => {
@@ -283,7 +284,7 @@ export function CatalogScreen() {
 
 	return (
 		<View style={{ flex: 1, backgroundColor: c.surface }}>
-			<FlatList
+			<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
 				ref={list}
 				data={rows}
 				keyExtractor={(row) => (row.kind === 'others' ? 'others' : row.parts.map((part) => part.id).join('-'))}
@@ -379,7 +380,7 @@ type Row = { kind: 'parts'; parts: PartCard[] } | { kind: 'others' }
 export function PartTile({ part }: { part: PartCard }) {
 	return (
 		<ProductCard
-			price={formatPrice(part.price)}
+			price={formatPartPrice(part.price)}
 			title={part.title}
 			fits={part.fits === true}
 			location={briefPlace(part.shop)}

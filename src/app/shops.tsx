@@ -35,7 +35,7 @@ export default function ShopsScreen() {
 		<View style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
 			<ScreenHeader title={t('Магазины')} />
 
-			<FlatList
+			<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag"
 				data={items}
 				keyExtractor={(shop) => String(shop.id)}
 				contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 16, gap: 10 }}

@@ -174,7 +174,7 @@ export default function ServiceNewScreen() {
 				</Pressable>
 			</View>
 
-			<ScrollView
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag"
 				contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 16, paddingBottom: 16, gap: 9 }}
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}

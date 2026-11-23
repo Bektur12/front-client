@@ -14,7 +14,6 @@ import { type PartFilters, usePart, usePublicPart, useSearchParts, useSignedIn, 
 import { flattenPages } from '@/api/pagination'
 import { useVideoViewer } from '@/store/useVideoViewer'
 import { PlayIcon } from '@/components/voice'
-import { TruckIcon } from '@/components/video-v23'
 import { PartTile } from '@/components/catalog-screen'
 import { useOpenChat } from '@/api/chats'
 import type { PartCondition } from '@/api/types'
@@ -29,6 +28,7 @@ import { t } from '@/i18n'
 import { formatOpenNow } from '@/lib/hours'
 import { openSignIn } from '@/components/sign-in-prompt'
 import { goBack } from '@/lib/navigation'
+import { YANDEX_LOGO, YLDAM_LOGO, useYandexCourier } from '@/components/courier-sheet'
 
 const CONDITION: Record<PartCondition, string> = { NEW: t('Новое'), USED: t('Б/У'), ON_ORDER: t('Под заказ') }
 
@@ -73,6 +73,8 @@ export default function PartScreen() {
 					{ onSuccess: (chat) => router.push({ pathname: '/chat', params: { chatId: String(chat.id) } }) }
 				)
 			: openSignIn())
+
+	const yandex = useYandexCourier(shop)
 
 	const roundButton = { width: 40, height: 40, borderRadius: 20, backgroundColor: c.floating, alignItems: 'center', justifyContent: 'center' } as const
 
@@ -172,7 +174,7 @@ export default function PartScreen() {
 				) : (
 					<>
 						<Text style={{ fontSize: fs.display, fontFamily: fontFamily(800), letterSpacing: -0.28, color: c.ink }}>
-							{formatPrice(part?.price) || ' '}
+							{(part?.priceNegotiable ? t('Договорная') : formatPrice(part?.price)) || ' '}
 						</Text>
 						<Text style={{ fontSize: fs.xl, fontFamily: fontFamily(400), color: c.inkSecondary }}>{part?.title ?? ' '}</Text>
 					</>
@@ -223,22 +225,27 @@ export default function PartScreen() {
 					</View>
 				) : null}
 
-				{/* Delivery for every part the seller ships — not only the ones posted as video (before: only in the reels). */}
-				{part?.shipsToRegions && part.stockStatus === 'IN_STOCK' ? (
-					<Pressable
-						onPress={() => (signedIn ? router.push({ pathname: '/delivery', params: { partId: String(part.id) } }) : openSignIn())}
-						accessibilityRole="button"
-						style={{ borderRadius: 16, backgroundColor: c.brandTint, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}
-					>
-						<View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }}>
-							<TruckIcon size={24} color={c.brandStrong} />
+				{/* Доставка: Яндекс Go — по Бишкеку сегодня (любой товар в наличии), Ылдам — в регионы (если продавец отправляет). */}
+				{part && shop && part.stockStatus === 'IN_STOCK' ? (
+					<View style={{ gap: 8 }}>
+						<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Доставка')}</Text>
+						<View style={{ flexDirection: 'row', gap: 8 }}>
+							<DeliveryTile
+								logo={YANDEX_LOGO}
+								title={t('Яндекс курьер')}
+								sub={yandex.opening ? t('Открываем…') : t('По Бишкеку · сегодня')}
+								onPress={() => (signedIn ? yandex.call() : openSignIn())}
+							/>
+							{part.shipsToRegions ? (
+								<DeliveryTile
+									logo={YLDAM_LOGO}
+									title={t('Ылдам Экспресс')}
+									sub={t('По Кыргызстану')}
+									onPress={() => (signedIn ? router.push({ pathname: '/delivery', params: { partId: String(part.id) } }) : openSignIn())}
+								/>
+							) : null}
 						</View>
-						<View style={{ flex: 1, gap: 2 }}>
-							<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.brandInk }}>{t('Доставка по Кыргызстану')}</Text>
-							<Text style={{ fontSize: fs.sm, lineHeight: 18.5, fontFamily: fontFamily(500), color: c.brandInk }}>{t('Курьер Ылдам Экспресс привезёт домой')}</Text>
-						</View>
-						<Text style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Оформить')}</Text>
-					</Pressable>
+					</View>
 				) : null}
 
 				{shop ? (
@@ -398,5 +405,21 @@ function PartBodySkeleton() {
 				</View>
 			</View>
 		</View>
+	)
+}
+
+/** A delivery service tile on the part card: logo, name, where and when. */
+function DeliveryTile({ logo, title, sub, onPress }: { logo: number; title: string; sub: string; onPress: () => void }) {
+	const c = useColors()
+	return (
+		<Pressable onPress={onPress} accessibilityRole="button" style={{ flex: 1 }}>
+			<View style={{ borderRadius: 16, backgroundColor: c.card, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+				<Image source={logo} contentFit="cover" style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: fixed.white }} />
+				<View style={{ flex: 1, gap: 2 }}>
+					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.ink }}>{title}</Text>
+					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.sm, fontFamily: fontFamily(500), color: c.muted }}>{sub}</Text>
+				</View>
+			</View>
+		</Pressable>
 	)
 }

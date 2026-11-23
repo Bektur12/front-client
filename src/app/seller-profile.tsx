@@ -79,7 +79,7 @@ export default function SellerProfileForBuyerScreen() {
 
 	return (
 		<View style={{ flex: 1, backgroundColor: c.surface }}>
-			<ScrollView
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
 				scrollEventThrottle={200}
 				onScroll={onNearEnd(() => {

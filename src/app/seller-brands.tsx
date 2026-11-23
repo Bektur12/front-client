@@ -52,7 +52,7 @@ export default function SellerBrandsScreen() {
 		<View style={{ flex: 1, backgroundColor: c.surface }}>
 			<ScreenHeader inset title={t('Марки, которые продаю')} />
 
-			<ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 12, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 12, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 				<View
 					style={{
 						height: 48,

@@ -120,7 +120,7 @@ export function SelectSheet<K extends string | number>({
 						/>
 					</View>
 				) : null}
-				<FlatList
+				<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag"
 					data={shown}
 					keyExtractor={(o) => String(o.key)}
 					keyboardShouldPersistTaps="handled"

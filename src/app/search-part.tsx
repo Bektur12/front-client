@@ -92,7 +92,7 @@ export default function SearchPartScreen() {
 		<View style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
 			<ScreenHeader title={t('Найти запчасть')} big onClose={() => goBack()} />
 
-			<ScrollView
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag"
 				contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }}
 				showsVerticalScrollIndicator={false}
 				keyboardShouldPersistTaps="handled"

@@ -20,6 +20,7 @@ import {
 } from '@/components/buyer-v23'
 import { TruckIcon, deliveryStatusText } from '@/components/video-v23'
 import { MarketVideos } from '@/components/market-videos'
+import { MarketStrip } from '@/components/market-strip'
 import { RecentlyViewed } from '@/components/recently-viewed'
 import { MyRequestItem, mergeRequests } from '@/components/my-requests'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
@@ -32,7 +33,7 @@ import { useSignedIn } from '@/api/catalog'
 import { useDeliveryOrders } from '@/api/delivery'
 import type { DeliveryOrder } from '@/api/types'
 import { t } from '@/i18n'
-import { openSignIn, requireSignIn } from '@/components/sign-in-prompt'
+import { requireSignIn } from '@/components/sign-in-prompt'
 import { Greeting } from '@/components/greeting'
 import { useRoadsidePack } from '@/store/useRoadsidePack'
 
@@ -77,26 +78,6 @@ export default function BuyerHomeScreen() {
 			<View style={{ minHeight: 68, paddingHorizontal: 16, paddingVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 				{/* «Салам, {имя}!» and the car under it. */}
 				<Greeting name={name} subtitle={car ? `${car.title} · ${car.year}` : t('Машина не выбрана')} />
-				{/* No car yet — «Добавить»; switching cars is not on the home screen. */}
-				{car ? null : (
-					<Pressable
-						onPress={() => (signedIn ? router.push('/garage-add') : openSignIn())}
-						style={{
-							height: 36,
-							paddingHorizontal: 12,
-							borderRadius: 18,
-							backgroundColor: c.card,
-							borderWidth: 1.5,
-							borderColor: c.border,
-							flexDirection: 'row',
-							alignItems: 'center',
-							gap: 6,
-						}}
-					>
-						<PlusThinIcon size={16} color={c.ink} />
-						<Text style={{ fontSize: fs.md, fontFamily: fontFamily(600), color: c.ink }}>{t('Добавить')}</Text>
-					</Pressable>
-				)}
 			</View>
 
 			<ScrollView
@@ -177,6 +158,8 @@ export default function BuyerHomeScreen() {
 					</View>
 					<ChevronIcon size={18} color={c.danger} />
 				</Pressable>
+
+				<MarketStrip />
 
 				<MarketVideos />
 
