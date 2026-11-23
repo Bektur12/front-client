@@ -4,7 +4,8 @@ import { router, useScrollToTop } from 'expo-router'
 import { askForPushAt } from '@/lib/push'
 import { usePullRefresh } from '@/lib/use-pull-refresh'
 import { BrandLogo, EmptyState, QueryErrorBanner, Screen, SkeletonRepeat, SkeletonRequestCard, undoToast } from '@/components/ui'
-import { RequestsIcon } from '@/components/icons'
+import { CameraIcon, RequestsIcon } from '@/components/icons'
+import { MarketVideos } from '@/components/market-videos'
 import { VoicePlayer } from '@/components/voice'
 import { MediaGallery, MediaStrip, photosAsMedia } from '@/components/media-strip'
 import { isPlaceholderText } from '@/components/request-text'
@@ -42,6 +43,9 @@ export default function SellerRequestsScreen() {
 
 	const hiddenIds = useHiddenIds('incoming')
 	const items = [...flattenPages(fresh.data), ...flattenPages(answered.data)].filter((item) => !hiddenIds.includes(item.id))
+	// Видео других продавцов и «Снять своё»: есть новые запросы — под ними (сначала ответить), нет — сверху.
+	const hasNew = flattenPages(fresh.data).some((item) => !hiddenIds.includes(item.id))
+	const videos = <SellerVideos />
 
 	return (
 		<Screen padding={0}>
@@ -87,11 +91,40 @@ export default function SellerRequestsScreen() {
 						{orders.map((order) => (
 							<DeliveryCard key={order.id} order={order} />
 						))}
+						{hasNew ? null : videos}
 					</View>
 				}
+				ListFooterComponent={hasNew ? <View style={{ paddingTop: 12 }}>{videos}</View> : undefined}
 				renderItem={({ item }) => <RequestCard request={item} />}
 			/>
 		</Screen>
+	)
+}
+
+/** «Видео с рынка»: что снимают другие продавцы — и кнопка снять своё (товар попадает в ленту покупателей). */
+function SellerVideos() {
+	const c = useColors()
+	return (
+		<View style={{ gap: 10 }}>
+			<Pressable
+				onPress={() => router.push('/seller-video')}
+				accessibilityRole="button"
+				style={{ borderRadius: 18, backgroundColor: c.brandTint, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}
+			>
+				<View style={{ width: 46, height: 46, borderRadius: 14, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}>
+					<CameraIcon size={24} color={fixed.white} />
+				</View>
+				<View style={{ flex: 1, gap: 2 }}>
+					<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Снять своё видео')}</Text>
+					<Text style={{ fontSize: fs.sm, lineHeight: 18.5, fontFamily: fontFamily(400), color: c.inkSecondary }}>
+						{t('10–15 секунд о запчасти — покупатели увидят его в ленте')}
+					</Text>
+				</View>
+				<Text style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Снять')}</Text>
+			</Pressable>
+			<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Видео других продавцов')}</Text>
+			<MarketVideos />
+		</View>
 	)
 }
 
