@@ -28,7 +28,7 @@ export default function BuyerLayout() {
 					<TabButton icon={SearchIcon} label={t('Запчасти')} />
 				</TabTrigger>
 				<TabTrigger name="market" asChild>
-					<TabButton icon={MarketIcon} label={t('Рынок')} />
+					<TabButton icon={MarketIcon} label={t('Рынок')} underAction />
 				</TabTrigger>
 				<TabTrigger name="chats" asChild>
 					<TabButton icon={ChatIcon} label={t('Чаты')} badge={unread || undefined} />
