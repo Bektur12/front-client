@@ -89,20 +89,29 @@ export const TabButton = forwardRef(function TabButton(
 })
 
 /**
- * «＋» посередине меню: одна кнопка на все «создать» — найти запчасть, позвать мастера, «сломалась машина».
- * Чуть приподнята над меню и залита фирменным цветом, чтобы её находили не читая.
+ * «＋» над серединой меню (над «Рынком»): одна кнопка на все «создать» — найти запчасть, позвать мастера,
+ * «сломалась машина». Висит над меню, вкладка под ней нажимается как обычно; фирменный цвет — находят не читая.
  */
+/** Сколько места над меню занимает «＋»: прижатое к низу экрана (полоса «Не нашли?») поднимается на столько. */
+export const CENTER_ACTION_ROOM = 68
+
 export function CenterActionButton({ onPress, icon: Icon, label }: { onPress: () => void; icon: ComponentType<IconProps>; label: string }) {
 	const c = useColors()
+	const insets = useSafeAreaInsets()
 	return (
-		<Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} hitSlop={6} style={{ flex: 1, alignItems: 'center' }}>
-			<View
+		<View pointerEvents="box-none" style={{ position: 'absolute', left: 0, right: 0, bottom: 72 + insets.bottom + 6, alignItems: 'center' }}>
+			<Pressable
+				onPress={onPress}
+				accessibilityRole="button"
+				accessibilityLabel={label}
+				hitSlop={6}
 				style={{
-					width: 54,
-					height: 54,
-					marginTop: -10,
-					borderRadius: 27,
+					width: 56,
+					height: 56,
+					borderRadius: 28,
 					backgroundColor: c.brand,
+					borderWidth: 3,
+					borderColor: c.surface,
 					alignItems: 'center',
 					justifyContent: 'center',
 					shadowColor: c.brand,
@@ -113,7 +122,7 @@ export function CenterActionButton({ onPress, icon: Icon, label }: { onPress: ()
 				}}
 			>
 				<Icon size={26} color={fixed.white} strokeWidth={2.6} />
-			</View>
-		</Pressable>
+			</Pressable>
+		</View>
 	)
 }

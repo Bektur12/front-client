@@ -35,7 +35,8 @@ const SORTS: { value: CatalogSort; label: string }[] = [
  * infinite grid. With a car — fitting parts first; without one — all parts. A master has no car of their own:
  * «Выберите марку» (the client's), until then all parts are shown.
  */
-export function CatalogScreen() {
+/** `floatingRoom` — место под «＋» над меню покупателя: полоса «Не нашли?» и низ списка поднимаются над ним. */
+export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = {}) {
 	const c = useColors()
 	// Tapping the active tab again scrolls back to the top, as in every app.
 	const list = useRef<FlatList<Row>>(null)
@@ -289,7 +290,7 @@ export function CatalogScreen() {
 				data={rows}
 				keyExtractor={(row) => (row.kind === 'others' ? 'others' : row.parts.map((part) => part.id).join('-'))}
 				ListHeaderComponent={header}
-				contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 16, paddingBottom: 90, gap: 20 }}
+				contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 16, paddingBottom: 90 + floatingRoom, gap: 20 }}
 				showsVerticalScrollIndicator={false}
 				onEndReached={() => search.hasNextPage && !search.isFetchingNextPage && search.fetchNextPage()}
 				renderItem={({ item: row }) =>
@@ -352,7 +353,7 @@ export function CatalogScreen() {
 					position: 'absolute',
 					left: 16,
 					right: 16,
-					bottom: 12,
+					bottom: 12 + floatingRoom,
 					height: 52,
 					borderRadius: 14,
 					// dark pill in both themes: `ink` is near-white in the dark theme, and the white label vanished on it

@@ -8,7 +8,7 @@ import { ChatIcon, HomeIcon, MarketIcon, ProfileIcon, SearchIcon } from '@/compo
 import { t } from '@/i18n'
 import { useSignedIn } from '@/api/catalog'
 
-/** Buyer tabs: Главная · Запчасти · ＋ · Рынок (карта) · Чаты · Профиль. «＋» — найти запчасть, мастер, «сломалась машина». */
+/** Buyer tabs: Главная · Запчасти · Рынок (карта) · Чаты · Профиль; «＋» висит над «Рынком» — найти запчасть, мастер, «сломалась машина». */
 export default function BuyerLayout() {
 	// Unread chats for this side — counted on the server, kept live by the UNREAD event.
 	const signedIn = useSignedIn()
@@ -27,7 +27,6 @@ export default function BuyerLayout() {
 				<TabTrigger name="parts" asChild>
 					<TabButton icon={SearchIcon} label={t('Запчасти')} />
 				</TabTrigger>
-				<CenterActionButton icon={PlusThinIcon} label={t('Найти запчасть, мастера или помощь')} onPress={() => setActions(true)} />
 				<TabTrigger name="market" asChild>
 					<TabButton icon={MarketIcon} label={t('Рынок')} />
 				</TabTrigger>
@@ -38,6 +37,7 @@ export default function BuyerLayout() {
 					<TabButton icon={ProfileIcon} label={t('Профиль')} />
 				</TabTrigger>
 			</TabBarContainer>
+			<CenterActionButton icon={PlusThinIcon} label={t('Найти запчасть, мастера или помощь')} onPress={() => setActions(true)} />
 
 			<TabList style={{ display: 'none' }}>
 				<TabTrigger name="home" href="/buyer" />
