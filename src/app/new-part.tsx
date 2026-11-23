@@ -481,26 +481,6 @@ export default function NewPartScreen() {
 					<Toggle value={draft.quantity > 0} onChange={(on) => draft.set({ quantity: on ? 1 : 0 })} />
 				</View>
 
-				{/* Not only video parts: with this on, buyers see «Доставка» on the part's page. */}
-				<View
-					style={{
-						minHeight: 56,
-						borderRadius: 12,
-						backgroundColor: c.card,
-						paddingHorizontal: 14,
-						paddingVertical: 10,
-						flexDirection: 'row',
-						alignItems: 'center',
-						gap: 12,
-					}}
-				>
-					<View style={{ flex: 1, gap: 2 }}>
-						<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(600), color: c.ink }}>{t('Отправлю в регионы')}</Text>
-						<Text style={{ fontSize: fs.sm, lineHeight: 18.5, fontFamily: fontFamily(400), color: c.muted }}>{t('Курьер Ылдам Экспресс заберёт из контейнера')}</Text>
-					</View>
-					<Toggle value={draft.shipsToRegions} onChange={(on) => draft.set({ shipsToRegions: on })} />
-				</View>
-
 				{id ? (
 					<Pressable
 						accessibilityRole="button"

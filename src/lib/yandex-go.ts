@@ -14,9 +14,10 @@ export interface Point {
 
 /**
  * Тариф — параметр `tariffClass` (yandex.ru/support/taxi-distr/ru/api/deeplinks.html), значения как в API:
- * `express` — «Доставка», `courier` — «Курьер» (до 10 кг). Работает, только если задана хотя бы одна точка маршрута.
+ * `courier` — «Курьер» (до 10 кг), `express` — «Доставка». Был `express`: в Бишкеке его нет, и Яндекс Go открывал
+ * такси. Работает, только если задана хотя бы одна точка маршрута.
  */
-const DELIVERY_TARIFF = 'express'
+const DELIVERY_TARIFF = 'courier'
 
 export function yandexGoUrl(from?: Point | null, to?: Point | null) {
 	const params: [string, string | number][] = []

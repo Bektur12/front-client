@@ -9,7 +9,7 @@ import { useConfirmLeave } from '@/lib/use-confirm-leave'
 import { BigButton, TickIcon, priceDigits } from '@/components/buyer-v23'
 import { QueryErrorBanner, ScreenHeader, toast, Toggle } from '@/components/ui'
 import { CloseIcon, GalleryIcon } from '@/components/icons'
-import { LoopVideo, TruckTile } from '@/components/video-v23'
+import { LoopVideo } from '@/components/video-v23'
 import { voiceClock } from '@/components/voice'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
 import { uploadPartVideo } from '@/lib/api'
@@ -31,7 +31,7 @@ interface Recorded {
 /**
  * Seller «Выложить видео»: film the part for 10–15 s and say what it is and the price — the server fills the form
  * from the voice («✓ Заполнили из голоса»). The video becomes a part of the catalog: the feed, the home screen and
- * the search show it to buyers with these cars. «Отправлю в регионы» — Ылдам Экспресс picks it up from the box.
+ * the search show it to buyers with these cars. Delivery (Яндекс курьер, Ылдам Экспресс) is offered on every part.
  */
 export default function SellerVideoScreen() {
 	const c = useColors()
@@ -50,7 +50,6 @@ export default function SellerVideoScreen() {
 	// «Договорная»: без цены — покупатель спросит в чате или позвонит
 	const [negotiable, setNegotiable] = useState(false)
 	const [condition, setCondition] = useState<'NEW' | 'USED'>('NEW')
-	const [ships, setShips] = useState(true)
 	// «Подходит к машинам» — optional; picked on the same screen as for a photo part, kept in the part draft
 	const fitments = usePartDraft((d) => d.fitments)
 	const removeFitment = usePartDraft((d) => d.removeFitment)
@@ -112,7 +111,8 @@ export default function SellerVideoScreen() {
 					condition,
 					quantity: 1,
 					videoMediaId: uploaded.video.id,
-					shipsToRegions: ships,
+					// доставку в регионы показываем у всех товаров — без отдельного вопроса
+					shipsToRegions: true,
 					fitments: fitments.map(({ brandId, modelId, yearFrom, yearTo }) => ({ brandId, modelId, yearFrom, yearTo })),
 				},
 			})
@@ -131,7 +131,7 @@ export default function SellerVideoScreen() {
 		<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
 			<ScreenHeader title={t('Выложить видео')} />
 
-			<ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+			<ScrollView keyboardDismissMode="on-drag" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 12 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 				<View style={{ flexDirection: 'row', gap: 12 }}>
 					<Pressable
 						onPress={() => !video && setRecording(true)}
@@ -309,27 +309,6 @@ export default function SellerVideoScreen() {
 					</View>
 				</View>
 
-				<Pressable onPress={() => setShips(!ships)} style={{ borderRadius: 16, backgroundColor: c.card, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-					<TruckTile />
-					<View style={{ flex: 1, gap: 2 }}>
-						<Text style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: c.ink }}>{t('Отправлю в регионы')}</Text>
-						<Text style={{ fontSize: fs.sm, lineHeight: 18.5, fontFamily: fontFamily(400), color: c.muted }}>{t('Курьер Ылдам Экспресс заберёт из контейнера')}</Text>
-					</View>
-					<View
-						style={{
-							width: 24,
-							height: 24,
-							borderRadius: 6,
-							borderWidth: ships ? 0 : 2,
-							borderColor: c.chevron,
-							backgroundColor: ships ? c.success : 'transparent',
-							alignItems: 'center',
-							justifyContent: 'center',
-						}}
-					>
-						{ships ? <TickIcon size={15} color={fixed.white} /> : null}
-					</View>
-				</Pressable>
 
 
 				<QueryErrorBanner error={save.error ?? publish.error} />

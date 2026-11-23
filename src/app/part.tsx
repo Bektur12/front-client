@@ -225,7 +225,7 @@ export default function PartScreen() {
 					</View>
 				) : null}
 
-				{/* Доставка: Яндекс Go — по Бишкеку сегодня (любой товар в наличии), Ылдам — в регионы (если продавец отправляет). */}
+				{/* Доставка у каждого товара в наличии: Яндекс курьер — по Бишкеку сегодня, Ылдам — по Кыргызстану. */}
 				{part && shop && part.stockStatus === 'IN_STOCK' ? (
 					<View style={{ gap: 8 }}>
 						<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Доставка')}</Text>
@@ -236,14 +236,12 @@ export default function PartScreen() {
 								sub={yandex.opening ? t('Открываем…') : t('По Бишкеку · сегодня')}
 								onPress={() => (signedIn ? yandex.call() : openSignIn())}
 							/>
-							{part.shipsToRegions ? (
-								<DeliveryTile
-									logo={YLDAM_LOGO}
-									title={t('Ылдам Экспресс')}
-									sub={t('По Кыргызстану')}
-									onPress={() => (signedIn ? router.push({ pathname: '/delivery', params: { partId: String(part.id) } }) : openSignIn())}
-								/>
-							) : null}
+							<DeliveryTile
+								logo={YLDAM_LOGO}
+								title={t('Ылдам Экспресс')}
+								sub={t('По Кыргызстану')}
+								onPress={() => (signedIn ? router.push({ pathname: '/delivery', params: { partId: String(part.id) } }) : openSignIn())}
+							/>
 						</View>
 					</View>
 				) : null}
