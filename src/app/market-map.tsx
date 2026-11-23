@@ -28,16 +28,17 @@ export default function MarketMapScreen() {
  * или марка — она подсвечивает все контейнеры, где её продают, и ведёт к ближайшему. Тап по контейнеру —
  * карточка с продавцом и «Маршрутом». Карта всегда светлая — и экран вокруг неё тоже, даже в тёмной теме.
  */
-export function MarketMap({ embedded = false }: { embedded?: boolean }) {
+export function MarketMap({ embedded = false, header }: { embedded?: boolean; header?: ReactNode }) {
 	return (
 		<LightTheme>
 			<StatusBar style="dark" />
-			<MarketMapContent embedded={embedded} />
+			<MarketMapContent embedded={embedded} header={header} />
 		</LightTheme>
 	)
 }
 
-function MarketMapContent({ embedded }: { embedded: boolean }) {
+/** header — под поиском, над марками: на вкладке «Рынок» это переключатель рынков. */
+function MarketMapContent({ embedded, header }: { embedded: boolean; header?: ReactNode }) {
 	const c = useColors()
 	const insets = useSafeAreaInsets()
 	const params = useLocalSearchParams<{ containerId?: string; brandId?: string }>()
@@ -71,7 +72,7 @@ function MarketMapContent({ embedded }: { embedded: boolean }) {
 		if (!scheme.boundary.length || !sheetHeight) return
 		mapRef.current?.fitTo(
 			scheme.boundary.map(([x, y]) => schemaToGeo(x, y)),
-			{ top: topInset + 110, bottom: sheetHeight + 12, left: 16, right: 16 },
+			{ top: topInset + (header ? 160 : 110), bottom: sheetHeight + 12, left: 16, right: 16 },
 		)
 	}
 	const select = (containerId: number) => {
@@ -166,6 +167,8 @@ function MarketMapContent({ embedded }: { embedded: boolean }) {
 						) : null}
 					</Floating>
 				</View>
+
+				{header && !showResults ? header : null}
 
 				{showResults ? (
 					<View style={{ paddingHorizontal: 12 }}>
@@ -383,7 +386,7 @@ function MarketMapContent({ embedded }: { embedded: boolean }) {
 }
 
 /** Белая плашка с мягкой тенью поверх карты. */
-function Floating({ style, children }: { style?: object; children: ReactNode }) {
+export function Floating({ style, children }: { style?: object; children: ReactNode }) {
 	const c = useColors()
 	return (
 		<View
@@ -455,7 +458,7 @@ function CloseButton({ onPress }: { onPress: () => void }) {
 	)
 }
 
-function RoundButton({ label, onPress, children }: { label: string; onPress: () => void; children: ReactNode }) {
+export function RoundButton({ label, onPress, children }: { label: string; onPress: () => void; children: ReactNode }) {
 	return (
 		<Pressable accessibilityLabel={label} onPress={onPress}>
 			<Floating style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }}>{children}</Floating>

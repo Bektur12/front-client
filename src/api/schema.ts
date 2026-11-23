@@ -5883,7 +5883,7 @@ export interface components {
             id: number;
             title: string;
             /** Format: int32 */
-            price: number;
+            price: number | null;
             currency: string;
             /** @enum {string} */
             condition: "NEW" | "USED" | "ON_ORDER";
@@ -5999,6 +5999,7 @@ export interface components {
             videoMediaId?: number;
             removeVideo?: boolean;
             shipsToRegions?: boolean;
+            priceNegotiable?: boolean;
         };
         FitDto: {
             carLabel: string;
@@ -6049,6 +6050,7 @@ export interface components {
             updatedAt: string;
             video: components["schemas"]["VideoDto"] | null;
             shipsToRegions: boolean;
+            priceNegotiable: boolean;
         };
         PartCommentInput: {
             text: string;
@@ -8251,7 +8253,7 @@ export interface components {
             publicId: string;
             title: string;
             /** Format: int32 */
-            price: number;
+            price: number | null;
             currency: string;
             /** @enum {string} */
             condition: "NEW" | "USED" | "ON_ORDER";

@@ -5,6 +5,7 @@ import { File, Paths } from 'expo-file-system'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { API_URL, apiFetch } from '@/lib/api'
 import { buildMarketGeo, bundledScheme, type MarketScheme } from '@/lib/market-geojson'
+import { affineToGeo, type GeoAffine } from '@/lib/geo'
 import { marketKeys } from './keys'
 import type { MapHighlight, Market, MarketRoute, MarketRow, MarketSearch, QrResolve, RowDetail } from './types'
 
@@ -137,6 +138,23 @@ export function useMarketGeo(highlightedRowIds: number[] = [], targetContainerId
 		// eslint-disable-next-line react-hooks/exhaustive-deps -- ids compared by value
 		[scheme, key, targetContainerId, cellsKey],
 	)
+}
+
+/** Карта рынка без контейнеров (Геология…): тот же формат, что у Кудайбергена, плюс своя матрица GPS. */
+export type MarketPlan = MarketScheme & { geo: GeoAffine }
+
+export function useMarketPlan(marketId: number | undefined) {
+	return useQuery({
+		queryKey: ['market', 'plan', marketId],
+		queryFn: async ({ signal }) => (await (await fetch('/dev-plan-4.json', { signal })).json()) as MarketPlan, // DEV-HACK
+		enabled: marketId != null,
+		staleTime: 30 * 60_000,
+	})
+}
+
+/** GeoJSON карты другого рынка — для MarketMapLive (prop geo). */
+export function usePlanGeo(plan: MarketPlan | undefined) {
+	return useMemo(() => (plan ? buildMarketGeo(plan, [], undefined, [], affineToGeo(plan.geo)) : undefined), [plan])
 }
 
 /**

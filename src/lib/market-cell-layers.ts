@@ -20,6 +20,7 @@ export type MarketSourceId =
 	| 'market-cells'
 	| 'market-cell-labels'
 	| 'market-labels'
+	| 'market-places'
 	| 'market-entrances'
 	| 'market-route'
 	| 'market-route-flow'
@@ -56,6 +57,11 @@ const isHl: Expr = ['==', ['get', 'hl'], true]
 const isMuted: Expr = ['==', ['get', 'muted'], true]
 const kindIs = (kind: string): Expr => ['==', ['get', 'kind'], kind]
 const isShopBlock: Expr = ['in', ['get', 'kind'], ['literal', ['shop', 'anon']]]
+
+/** Магазины запчастей среди точек справочника — синие; СТО, стёкла и прочее — серые. */
+const isPartsPlace: Expr = ['in', ['get', 'kind'], ['literal', ['PARTS_NEW', 'PARTS_USED']]]
+/** Точки магазинов: тап по ним — карточка магазина. */
+export const PLACE_IDS = ['market-place-parts', 'market-place-other']
 
 const zoomed = (stops: number[]): Expr => ['interpolate', ['exponential', 1.5], ['zoom'], ...stops]
 
@@ -336,6 +342,51 @@ export function marketLayers(p: MapPalette = mapPalette): CellLayer[] {
 				'text-halo-width': 1.6,
 				'text-halo-blur': 0.4,
 			},
+		},
+
+		// ── магазины и сервисы со справочника (Геология…): точки, ближе — названия. Цвет постоянный на слой:
+		//    data-driven цвет на iOS (MapLibre 6.31) уже ронял карту — не рискуем.
+		{
+			id: 'market-place-other',
+			source: 'market-places',
+			type: 'circle',
+			minzoom: 16.4,
+			filter: ['!', isPartsPlace],
+			paint: {
+				'circle-radius': zoomed([16.4, 3, 18, 5.5, 19.5, 8]),
+				'circle-color': p.placeOther,
+				'circle-stroke-color': '#FFFFFF',
+				'circle-stroke-width': 1.5,
+			},
+		},
+		{
+			id: 'market-place-parts',
+			source: 'market-places',
+			type: 'circle',
+			minzoom: 16.4,
+			filter: isPartsPlace,
+			paint: {
+				'circle-radius': zoomed([16.4, 3.5, 18, 6, 19.5, 9]),
+				'circle-color': p.placeParts,
+				'circle-stroke-color': '#FFFFFF',
+				'circle-stroke-width': 1.5,
+			},
+		},
+		{
+			id: 'market-place-name',
+			source: 'market-places',
+			type: 'symbol',
+			minzoom: 18,
+			layout: {
+				'text-field': ['get', 'name'],
+				'text-font': ['Noto Sans Regular'],
+				'text-size': ['interpolate', ['linear'], ['zoom'], 18, 10, 20, 13],
+				'text-anchor': 'top',
+				'text-offset': [0, 0.8],
+				'text-max-width': 8,
+				'text-allow-overlap': false,
+			},
+			paint: { 'text-color': p.placeText, 'text-halo-color': '#FFFFFF', 'text-halo-width': 1.4 },
 		},
 
 		// ── входы: точка и пульсирующее кольцо вокруг

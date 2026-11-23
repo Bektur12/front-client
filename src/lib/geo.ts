@@ -40,3 +40,31 @@ export function schemaToGeo(x: number, y: number): [number, number] {
 		origin.latitude - metersY / (EARTH_RADIUS * RAD),
 	]
 }
+
+/** Координаты схемы → [долгота, широта]. */
+export type Project = (x: number, y: number) => [number, number]
+
+/** Матрица GPS с сервера (MapDto.geo): x = a·E + b·N + c, y = d·E + e·N + f, E/N — метры от (lat0, lon0). */
+export interface GeoAffine {
+	lat0: number
+	lon0: number
+	a: number
+	b: number
+	c: number
+	d: number
+	e: number
+	f: number
+}
+
+/** Обратное к матрице сервера: схема рынка (Геология и др.) → [долгота, широта]. Метры — как в GeoCalibration. */
+export function affineToGeo(g: GeoAffine): Project {
+	const det = g.a * g.e - g.b * g.d
+	const metersPerLon = 111_320 * Math.cos(g.lat0 * RAD)
+	return (x, y) => {
+		const dx = x - g.c
+		const dy = y - g.f
+		const east = (g.e * dx - g.b * dy) / det
+		const north = (-g.d * dx + g.a * dy) / det
+		return [g.lon0 + east / metersPerLon, g.lat0 + north / 110_574]
+	}
+}

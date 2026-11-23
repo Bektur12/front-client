@@ -10,7 +10,7 @@ import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { marketMapStyle } from '@/data/map-style'
 import { type MarketGeo, routeToGeoJSON } from '@/lib/market-geojson'
-import { ANIMATED, CELL_BOX_IDS, marketLayers, type MarketSourceId } from '@/lib/market-cell-layers'
+import { ANIMATED, CELL_BOX_IDS, PLACE_IDS, marketLayers, type MarketSourceId } from '@/lib/market-cell-layers'
 import { mapPalette as palette } from '@/lib/map-palette'
 import { useMarketGeo } from '@/api/market'
 import { fs, useColors } from '@/theme'
@@ -42,6 +42,10 @@ export interface MarketMapLiveHandle {
 }
 
 interface MarketMapLiveProps {
+	/** Карта другого рынка (Геология…) — свой GeoJSON вместо схемы Кудайбергена. */
+	geo?: MarketGeo
+	/** Тап по магазину справочника; index — номер в scheme.pois. */
+	onPlacePress?: (index: number) => void
 	highlightedRowIds?: number[]
 	route?: number[][]
 	showUser?: boolean
@@ -64,6 +68,7 @@ function sourceData(geo: MarketGeo, route: number[][] | undefined): SourceData {
 		'market-cells': geo.cells,
 		'market-cell-labels': geo.cellLabels,
 		'market-labels': geo.labels,
+		'market-places': geo.places,
 		'market-entrances': geo.entrances,
 		'market-route': line,
 		'market-route-flow': line,
@@ -196,13 +201,16 @@ function animate(map: maplibregl.Map, hasRoute: () => boolean) {
 }
 
 export const MarketMapLive = forwardRef(function MarketMapLive(
-	{ highlightedRowIds = [], route, showUser = true, targetContainerId, highlightedContainerIds, onContainerPress }: MarketMapLiveProps,
+	{ highlightedRowIds = [], route, showUser = true, targetContainerId, highlightedContainerIds, onContainerPress, onPlacePress, geo: ownGeo }: MarketMapLiveProps,
 	ref: Ref<MarketMapLiveHandle>,
 ) {
 	const c = useColors()
-	const geo = useMarketGeo(highlightedRowIds, targetContainerId, highlightedContainerIds)
+	const kudaibergen = useMarketGeo(highlightedRowIds, targetContainerId, highlightedContainerIds)
+	const geo = ownGeo ?? kudaibergen
 	const onContainerPressRef = useRef(onContainerPress)
 	onContainerPressRef.current = onContainerPress
+	const onPlacePressRef = useRef(onPlacePress)
+	onPlacePressRef.current = onPlacePress
 	const marketCenter = geo.center
 	const geoRef = useRef(geo)
 	const routeRef = useRef(route)
@@ -358,6 +366,16 @@ export const MarketMapLive = forwardRef(function MarketMapLive(
 		map.on('click', CELL_BOX_IDS, (event) => {
 			const props = event.features?.[0]?.properties
 			if (props?.containerId) onContainerPressRef.current?.(Number(props.containerId), Number(props.shopId) || 0)
+		})
+		map.on('click', PLACE_IDS, (event) => {
+			const props = event.features?.[0]?.properties
+			if (props?.index != null) onPlacePressRef.current?.(Number(props.index))
+		})
+		map.on('mouseenter', PLACE_IDS, () => {
+			if (onPlacePressRef.current) map.getCanvas().style.cursor = 'pointer'
+		})
+		map.on('mouseleave', PLACE_IDS, () => {
+			map.getCanvas().style.cursor = ''
 		})
 		map.on('mouseenter', CELL_BOX_IDS, () => {
 			if (onContainerPressRef.current) map.getCanvas().style.cursor = 'pointer'

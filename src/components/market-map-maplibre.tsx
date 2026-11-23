@@ -10,7 +10,7 @@ import {
 	type CameraRef,
 } from '@maplibre/maplibre-react-native'
 import { marketMapStyle } from '@/data/map-style'
-import { routeToGeoJSON } from '@/lib/market-geojson'
+import { type MarketGeo, routeToGeoJSON } from '@/lib/market-geojson'
 import { marketLayers, type CellLayer, type MarketSourceId } from '@/lib/market-cell-layers'
 import { mapPalette as palette } from '@/lib/map-palette'
 import { useMarketGeo } from '@/api/market'
@@ -44,6 +44,10 @@ export interface MarketMapLiveHandle {
 }
 
 interface MarketMapLiveProps {
+	/** Карта другого рынка (Геология…) — свой GeoJSON вместо схемы Кудайбергена. */
+	geo?: MarketGeo
+	/** Тап по магазину справочника; index — номер в scheme.pois. */
+	onPlacePress?: (index: number) => void
 	/** id рядов, которые подсвечены фильтром (GET /market/map/highlight → rowIds). */
 	highlightedRowIds?: number[]
 	/** Маршрут в координатах схемы рынка. */
@@ -74,12 +78,13 @@ function CellLayerView({ layer }: { layer: CellLayer }) {
 }
 
 export const MarketMapLive = forwardRef(function MarketMapLive(
-	{ highlightedRowIds = [], route, showUser = true, targetContainerId, highlightedContainerIds, onContainerPress }: MarketMapLiveProps,
+	{ highlightedRowIds = [], route, showUser = true, targetContainerId, highlightedContainerIds, onContainerPress, onPlacePress, geo: ownGeo }: MarketMapLiveProps,
 	ref: Ref<MarketMapLiveHandle>,
 ) {
 	const mapStyle = useMemo(() => marketMapStyle(), [])
 	const layers = useMemo(() => marketLayers(), [])
-	const geo = useMarketGeo(highlightedRowIds, targetContainerId, highlightedContainerIds)
+	const kudaibergen = useMarketGeo(highlightedRowIds, targetContainerId, highlightedContainerIds)
+	const geo = ownGeo ?? kudaibergen
 	const marketCenter = geo.center
 	const camera = useRef<CameraRef>(null)
 	const currentZoom = useRef(INTRO_VIEW.zoom)
@@ -98,6 +103,7 @@ export const MarketMapLive = forwardRef(function MarketMapLive(
 		'market-cells': geo.cells,
 		'market-cell-labels': geo.cellLabels,
 		'market-labels': geo.labels,
+		'market-places': geo.places,
 		'market-entrances': geo.entrances,
 		'market-route': routeLine,
 		'market-route-flow': routeLine,
@@ -194,7 +200,12 @@ export const MarketMapLive = forwardRef(function MarketMapLive(
 										const props = event.nativeEvent.features?.[0]?.properties
 										if (props?.containerId) onContainerPress?.(Number(props.containerId), Number(props.shopId) || 0)
 									}
-								: undefined
+								: id === 'market-places'
+									? (event) => {
+											const props = event.nativeEvent.features?.[0]?.properties
+											if (props?.index != null) onPlacePress?.(Number(props.index))
+										}
+									: undefined
 						}
 					>
 						{layers

@@ -96,6 +96,8 @@ export interface Market {
 	code: string
 	name: string
 	hasScheme: boolean
+	/** Есть карта рынка: у Кудайбергена с контейнерами, у других — ряды и проходы (GET /market/markets/{id}/map). */
+	hasMap?: boolean
 	lat: number | null
 	lng: number | null
 }

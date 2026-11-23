@@ -55,6 +55,10 @@ export interface MapPalette {
 	label: string
 	labelHl: string
 	labelHalo: string
+	/** Магазины и сервисы со справочника (карты рынков без контейнеров): точка запчастей, прочих, подпись. */
+	placeParts: string
+	placeOther: string
+	placeText: string
 	entrance: string
 	entranceRing: string
 	entranceText: string
@@ -115,6 +119,9 @@ export const mapPalette: MapPalette = {
 	label: '#2A2F38',
 	labelHl: '#1D46BF',
 	labelHalo: '#FFFFFF',
+	placeParts: '#2155E6',
+	placeOther: '#6B7686',
+	placeText: '#1D2A44',
 	entrance: '#1A1C20',
 	entranceRing: '#2155E6',
 	entranceText: '#1D46BF',

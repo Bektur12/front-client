@@ -161,7 +161,7 @@ function FeedPage({
 						onSuccess: (chat) =>
 							router.push({
 								pathname: '/chat',
-								params: { chatId: String(chat.id), draft: t('Здравствуйте! Хочу заказать «{0}» за {1} сом.', item.title, priceDigits(item.price)) },
+								params: { chatId: String(chat.id), draft: item.price != null ? t('Здравствуйте! Хочу заказать «{0}» за {1} сом.', item.title, priceDigits(item.price)) : t('Здравствуйте! Хочу заказать «{0}». Какая цена?', item.title) },
 							}),
 					}
 				)
@@ -242,7 +242,7 @@ function FeedPage({
 					</Text>
 				) : null}
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-					<Text style={{ fontSize: fs.hero, fontFamily: fontFamily(800), letterSpacing: -0.6, color: fixed.white }}>{t('{0} сом', priceDigits(item.price))}</Text>
+					<Text style={{ fontSize: fs.hero, fontFamily: fontFamily(800), letterSpacing: -0.6, color: fixed.white }}>{item.price != null ? t('{0} сом', priceDigits(item.price)) : t('Договорная')}</Text>
 					{condition ? (
 						<View style={{ height: 24, paddingHorizontal: 8, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center' }}>
 							<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(700), color: fixed.white }}>{condition}</Text>

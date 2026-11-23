@@ -4,7 +4,7 @@ import { Image } from '@/components/ui/image'
 import { PhotoPlaceholder } from '@/components/ui'
 import { fontFamily, fs, screenSectionTitle, useColors } from '@/theme'
 import { resolveUrl } from '@/lib/api'
-import { formatPrice } from '@/lib/format'
+import { formatPartPrice } from '@/lib/format'
 import { useRecentlyViewed } from '@/store/useRecentlyViewed'
 import { t } from '@/i18n'
 
@@ -31,7 +31,7 @@ export function RecentlyViewed() {
 						key={part.id}
 						onPress={() => router.push({ pathname: '/part', params: { id: String(part.id) } })}
 						accessibilityRole="button"
-						accessibilityLabel={[part.title, formatPrice(part.price)].filter(Boolean).join(', ')}
+						accessibilityLabel={[part.title, formatPartPrice(part.price)].filter(Boolean).join(', ')}
 						style={{ width: TILE, gap: 6 }}
 					>
 						<View style={{ width: TILE, height: TILE, borderRadius: 14, overflow: 'hidden', backgroundColor: c.card }}>
@@ -42,7 +42,7 @@ export function RecentlyViewed() {
 							)}
 						</View>
 						<Text numberOfLines={1} style={{ fontSize: fs.md, fontFamily: fontFamily(800), color: c.ink }}>
-							{formatPrice(part.price) || '—'}
+							{formatPartPrice(part.price)}
 						</Text>
 						<Text numberOfLines={1} style={{ fontSize: fs.sm, fontFamily: fontFamily(400), color: c.inkSecondary }}>
 							{part.title || part.shopName}

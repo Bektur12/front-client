@@ -1,5 +1,5 @@
 import type { Feature, FeatureCollection, LineString, Point, Polygon } from 'geojson'
-import { schemaToGeo } from '@/lib/geo'
+import { type Project, schemaToGeo } from '@/lib/geo'
 import bundled from '@/data/market-map.json'
 import { t } from '@/i18n'
 
@@ -31,7 +31,32 @@ export interface MarketScheme {
 	}[]
 	passages: { points: number[][]; width: number }[]
 	entrances: { x: number; y: number; label: string }[]
+	/** Подписи корпусов («76 ст1», «137Б») — есть у карт рынков без контейнеров. */
+	labels?: { x: number; y: number; text: string }[]
+	/** Точки на карте: у Геологии — магазины и сервисы из справочника (kind PARTS_NEW, PARTS_USED, SERVICE…), стоянки. */
+	pois?: SchemePlace[]
 }
+
+/** Магазин или сервис на карте рынка без контейнеров (из справочника 2ГИС). */
+export interface SchemePlace {
+	x: number
+	y: number
+	/** Название: «Banzai Motors». */
+	label: string
+	kind: string
+	/** Чем занимается: «магазин автозапчастей», «центр авторазбора». */
+	what?: string
+	address?: string
+	/** Этаж, бокс, контейнер — если указано. */
+	place?: string
+	hours?: string
+	lat?: number
+	lon?: number
+	gisUrl?: string
+}
+
+/** Виды точек, которые рисуются как магазины (стоянки и кафе со снимка — нет). */
+export const PLACE_KINDS = ['PARTS_NEW', 'PARTS_USED', 'SERVICE', 'GLASS', 'OTHER']
 
 export interface SchemeContainer {
 	id: number
@@ -98,8 +123,8 @@ function centerOf(points: number[][]): [number, number] {
 	return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2]
 }
 
-function polygon(points: number[][], properties: Record<string, unknown>): Feature<Polygon> {
-	return { type: 'Feature', properties, geometry: { type: 'Polygon', coordinates: [[...points, points[0]].map(toGeo)] } }
+function polygonOf(points: number[][], properties: Record<string, unknown>, project: (p: number[]) => [number, number] = toGeo): Feature<Polygon> {
+	return { type: 'Feature', properties, geometry: { type: 'Polygon', coordinates: [[...points, points[0]].map(project)] } }
 }
 
 /** Row label on the map: «Ряд 14», «Жайма 1»; vertical rows by their letter. */
@@ -111,6 +136,8 @@ export interface MarketGeo {
 	/** Rows and other blocks; rows carry `rowId`, `hl` (highlighted) and `muted` (another row is). */
 	blocks: FeatureCollection<Polygon>
 	labels: FeatureCollection<Point>
+	/** Магазины и сервисы справочника: `index` — номер в scheme.pois, `name`, `kind`. */
+	places: FeatureCollection<Point>
 	entrances: FeatureCollection<Point>
 	/** Ячейки контейнеров: `containerId`, `number`, `shop` (есть продавец), `shopId`, `shopName`, `target`, `hl` (фильтр). */
 	cells: FeatureCollection<Polygon>
@@ -129,7 +156,11 @@ export function buildMarketGeo(
 	highlightedRowIds: number[] = [],
 	targetContainerId?: number,
 	highlightedContainerIds: number[] = [],
+	/** Проекция схемы на карту: у Кудайбергена — его опорные точки, у других рынков — матрица из их карты. */
+	projectXY: Project = schemaToGeo,
 ): MarketGeo {
+	const toGeo = ([x, y]: number[]) => projectXY(x, y)
+	const polygon = (points: number[][], properties: Record<string, unknown>) => polygonOf(points, properties, toGeo)
 	const highlightedCells = new Set(highlightedContainerIds)
 	const highlighted = new Set(highlightedRowIds)
 	const active = highlighted.size > 0
@@ -194,18 +225,33 @@ export function buildMarketGeo(
 		blocks: { type: 'FeatureCollection', features: [...otherFeatures, ...rowFeatures] },
 		labels: {
 			type: 'FeatureCollection',
-			features: scheme.rows.map((row) => ({
-				type: 'Feature',
-				properties: { label: mapLabel(row), hl: highlighted.has(row.id) },
-				geometry: { type: 'Point', coordinates: toGeo(centers.get(row.id)!) },
-			})),
+			features: [
+				...scheme.rows.map((row): Feature<Point> => ({
+					type: 'Feature',
+					properties: { label: mapLabel(row), hl: highlighted.has(row.id) },
+					geometry: { type: 'Point', coordinates: toGeo(centers.get(row.id)!) },
+				})),
+				...(scheme.labels ?? []).map((label): Feature<Point> => ({
+					type: 'Feature',
+					properties: { label: label.text, hl: false },
+					geometry: { type: 'Point', coordinates: toGeo([label.x, label.y]) },
+				})),
+			],
+		},
+		places: {
+			type: 'FeatureCollection',
+			features: (scheme.pois ?? []).flatMap((poi, index): Feature<Point>[] =>
+				PLACE_KINDS.includes(poi.kind)
+					? [{ type: 'Feature', properties: { index, name: poi.label, kind: poi.kind }, geometry: { type: 'Point', coordinates: toGeo([poi.x, poi.y]) } }]
+					: []
+			),
 		},
 		entrances: {
 			type: 'FeatureCollection',
 			features: scheme.entrances.map((entrance) => ({
 				type: 'Feature',
 				properties: { label: entrance.label },
-				geometry: { type: 'Point', coordinates: schemaToGeo(entrance.x, entrance.y) },
+				geometry: { type: 'Point', coordinates: projectXY(entrance.x, entrance.y) },
 			})),
 		},
 		cells: { type: 'FeatureCollection', features: cells },

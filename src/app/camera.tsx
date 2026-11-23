@@ -258,9 +258,10 @@ export default function CameraScreen() {
 			>
 				<Pressable accessibilityRole="button" accessibilityLabel={t('Выбрать из галереи')}
 					onPress={fromGallery}
-					style={{ width: 52, height: 52, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}
+					style={{ width: 72, height: 64, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', gap: 2 }}
 				>
 					<GalleryIcon size={24} color={fixed.white} />
+					<Text style={{ fontSize: fs.xxs, fontFamily: fontFamily(700), color: fixed.white }}>{t('Галерея')}</Text>
 				</Pressable>
 
 				<Pressable

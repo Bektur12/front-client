@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Рынки — набросок</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --surface:#FFFFFF; --card:#F4F5F7; --ink:#1A1C20; --ink2:#3A3F47; --muted:#5A6880; --fill:#7D8BA1;
+    --border:#DDE2E8; --hair:#E9ECF0; --brand:#2155E6; --brandStrong:#1D46BF; --brandTint:#EDF2FF; --ok:#15803D;
+    /* цвета рынков */
+    --kud:#2155E6; --kudT:#EDF2FF;
+    --geo:#E07B00; --geoT:#FFF3E2;
+    --dm:#0F9D58;  --dmT:#E6F6EE;
+    --dor:#7A4DE0; --dorT:#F2EDFF;
+    --page:#E6E9EE;
+  }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { font-family:Inter,system-ui,sans-serif; background:var(--page); color:var(--ink); padding:32px 24px 64px; }
+  h1 { font-size:26px; font-weight:800; letter-spacing:-.3px }
+  .lead { margin-top:8px; max-width:880px; font-size:15px; line-height:1.5; color:var(--ink2) }
+  .note { display:inline-block; margin-top:10px; font-size:13px; color:var(--muted); background:#fff; border-radius:8px; padding:6px 10px }
+
+  /* легенда цветов */
+  .legend { display:flex; flex-wrap:wrap; gap:10px; margin:22px 0 28px }
+  .lg { display:flex; align-items:center; gap:10px; background:#fff; border-radius:14px; padding:10px 14px 10px 10px }
+  .lg b { font-size:15px } .lg small { display:block; font-size:12px; color:var(--muted); margin-top:1px }
+
+  .row { display:flex; flex-wrap:wrap; gap:28px; align-items:flex-start }
+  .shot { width:390px }
+  .cap { font-size:14px; font-weight:700; margin:0 0 10px 6px } .cap span { font-weight:500; color:var(--muted) }
+  .phone { position:relative; width:390px; height:844px; background:var(--surface); border-radius:40px; overflow:hidden;
+           box-shadow:0 20px 50px rgba(20,30,60,.16); display:flex; flex-direction:column }
+  .status { height:46px; flex:none; display:flex; align-items:flex-end; justify-content:space-between; padding:0 28px 6px; font-size:15px; font-weight:700 }
+  .status i { font-style:normal; letter-spacing:2px; font-size:12px }
+
+  /* монограмма рынка */
+  .mono { flex:none; width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+          color:#fff; font-weight:800; font-size:15px; letter-spacing:-.3px }
+  .mono.sm { width:22px; height:22px; border-radius:7px; font-size:10px }
+  .mono.lg { width:52px; height:52px; border-radius:15px; font-size:19px }
+  .kud{background:var(--kud)} .geo{background:var(--geo)} .dm{background:var(--dm)} .dor{background:var(--dor)}
+
+  /* переключатель рынков */
+  .switch { display:flex; gap:8px; overflow:hidden; padding:0 12px }
+  .chip { flex:none; display:flex; align-items:center; gap:7px; height:40px; padding:0 14px 0 9px; border-radius:20px; background:#fff;
+          font-size:14px; font-weight:600; color:var(--ink); box-shadow:0 3px 10px rgba(30,40,70,.10); border:1.5px solid transparent }
+  .chip.on { font-weight:800 }
+  .chip.on.kud-on { border-color:var(--kud); background:var(--kudT); color:var(--brandStrong) }
+  .chip.on.geo-on { border-color:var(--geo); background:var(--geoT); color:#9A5300 }
+  .chip.on.dm-on  { border-color:var(--dm);  background:var(--dmT);  color:#08703E }
+  .dot { width:10px; height:10px; border-radius:5px }
+
+  .search { margin:6px 12px 10px; height:52px; border-radius:26px; background:#fff; display:flex; align-items:center; gap:10px; padding:0 18px;
+            font-size:15px; color:var(--fill); box-shadow:0 6px 16px rgba(30,40,70,.14) }
+
+  /* шторка */
+  .sheet { position:absolute; left:0; right:0; bottom:84px; background:#fff; border-radius:26px 26px 0 0; padding:10px 16px 16px;
+           box-shadow:0 -6px 16px rgba(30,40,70,.12) }
+  .grip { width:38px; height:5px; border-radius:3px; background:var(--border); margin:0 auto 12px }
+  .t1 { font-size:20px; font-weight:800; letter-spacing:-.2px }
+  .t2 { font-size:14px; color:var(--muted); font-weight:500; margin-top:3px; line-height:1.4 }
+  .open { color:var(--ok); font-weight:700 }
+  .btns { display:flex; gap:10px; margin-top:14px }
+  .btn { flex:1; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:8px; font-size:16px; font-weight:700 }
+  .btn.blue { background:var(--brand); color:#fff } .btn.grey { background:var(--card); color:var(--ink) }
+
+  /* таббар */
+  .tabs { position:absolute; left:0; right:0; bottom:0; height:84px; background:#fff; border-top:1px solid var(--hair);
+          display:flex; justify-content:space-around; padding-top:9px }
+  .tab { display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; font-weight:600; color:var(--fill); width:64px }
+  .tab .ic { width:24px; height:24px; border-radius:7px; border:2px solid currentColor }
+  .tab.on { color:var(--brand) }
+
+  /* карта Кудайбергена (как сейчас) */
+  .map { position:absolute; inset:0; background:#EFEAE1 }
+
+  /* шапка рынка без схемы */
+  .hero { margin:4px 16px 0; border-radius:22px; padding:16px; display:flex; gap:14px; align-items:center }
+  .hero.geo-h { background:var(--geoT) } .hero.dm-h { background:var(--dmT) }
+  .sec { font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin:18px 16px 8px }
+  .seller { display:flex; gap:12px; align-items:center; margin:0 16px 8px; padding:10px; background:var(--card); border-radius:16px }
+  .ava { width:52px; height:52px; border-radius:26px; background:#D9DEE6; flex:none; display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--muted) }
+  .seller b { font-size:15px; display:block } .seller small { display:block; font-size:13px; color:var(--muted); margin-top:2px }
+  .seller .go { margin-left:auto; color:var(--fill); font-size:20px }
+  .place { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:700; border-radius:8px; padding:3px 7px 3px 3px; margin-top:6px }
+  .place.geo-p { background:var(--geoT); color:#9A5300 } .place.kud-p { background:var(--kudT); color:var(--brandStrong) }
+  .place.dm-p { background:var(--dmT); color:#08703E } .place.dor-p { background:var(--dorT); color:#5530B0 }
+  .brands { display:flex; gap:4px; margin-top:6px } .brands span { font-size:11px; font-weight:700; color:var(--ink2); background:#fff; border-radius:6px; padding:2px 6px }
+
+  .empty { margin:22px 16px 0; text-align:center; padding:26px 18px; border:2px dashed var(--border); border-radius:20px }
+  .empty b { display:block; font-size:17px; margin-bottom:6px } .empty p { font-size:14px; line-height:1.45; color:var(--muted) }
+
+  /* экран «Рынки» */
+  .hdr { padding:6px 16px 4px; display:flex; align-items:center; gap:12px } .hdr .t1 { font-size:26px }
+  .mk { margin:10px 16px 0; border-radius:20px; background:var(--card); padding:14px; }
+  .mk-top { display:flex; gap:12px; align-items:center }
+  .mk b { font-size:17px; font-weight:800 } .mk small { display:block; font-size:13px; color:var(--muted); margin-top:2px; line-height:1.35 }
+  .mk-meta { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px }
+  .pill { font-size:12px; font-weight:700; border-radius:8px; padding:5px 8px; background:#fff; color:var(--ink2) }
+  .pill.ok { color:var(--ok) } .pill.scheme { background:var(--brandTint); color:var(--brandStrong) }
+  .mk-btns { display:flex; gap:8px; margin-top:12px }
+  .mk-btns div { flex:1; height:42px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700 }
+  .mk-btns .main { color:#fff }
+  .mk-btns .main.kud{background:var(--kud)} .mk-btns .main.geo{background:var(--geo)} .mk-btns .main.dm{background:var(--dm)} .mk-btns .main.dor{background:var(--dor)}
+  .strip { width:6px; border-radius:3px; align-self:stretch }
+
+  /* «Запчасти» */
+  .h1 { font-size:26px; font-weight:700; letter-spacing:-.3px; padding:4px 16px 0; display:flex; align-items:center }
+  .h1 a { margin-left:auto; font-size:15px; font-weight:700; color:var(--brandStrong); text-decoration:none }
+  .inp { margin:10px 16px 0; height:48px; border-radius:12px; background:var(--card); display:flex; align-items:center; gap:10px; padding:0 14px; font-size:15px; color:var(--fill) }
+  .mchips { display:flex; gap:8px; padding:12px 16px 0; overflow:hidden }
+  .mc { flex:none; height:34px; padding:0 12px 0 6px; border-radius:17px; border:1px solid var(--border); display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600 }
+  .mc.plain { padding-left:12px }
+  .mc.on-geo { background:var(--geo); border-color:var(--geo); color:#fff; font-weight:700 }
+  .mc.on-geo .mono { background:#fff; color:var(--geo) }
+  .banner { margin:12px 16px 0; border-radius:14px; padding:10px 12px; display:flex; align-items:center; gap:10px; font-size:13px; line-height:1.35 }
+  .banner b { font-weight:700 } .banner a { margin-left:auto; font-weight:700; text-decoration:none; white-space:nowrap }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px 16px }
+  .pt .ph { height:150px; border-radius:16px; background:linear-gradient(135deg,#D7DCE4,#EEF1F5); position:relative }
+  .pt .ph .place { position:absolute; left:8px; bottom:8px; margin:0; box-shadow:0 2px 6px rgba(0,0,0,.12) }
+  .pt b { display:block; font-size:16px; font-weight:800; margin-top:8px } .pt span.tt { display:block; font-size:13px; line-height:1.3; color:var(--ink2); margin-top:2px }
+  .pt small { display:block; font-size:12px; color:var(--muted); margin-top:4px }
+  .fits { display:inline-block; font-size:11px; font-weight:700; color:var(--ok); background:#E8F5EC; border-radius:6px; padding:2px 6px; margin-top:4px }
+
+  /* «Главная» */
+  .greet { padding:6px 16px 0; display:flex; align-items:center; gap:10px }
+  .greet b { font-size:20px; font-weight:800 } .greet small { display:block; font-size:13px; color:var(--muted) }
+  .find { margin:12px 16px 0; border-radius:22px; background:var(--brand); color:#fff; padding:18px; display:flex; gap:14px; align-items:center }
+  .find b { font-size:22px; font-weight:800 } .find small { display:block; font-size:14px; opacity:.88; margin-top:3px }
+  .caps { font-size:15px; font-weight:800; margin:20px 16px 10px; display:flex; align-items:center } .caps a { margin-left:auto; font-size:14px; color:var(--brandStrong); text-decoration:none }
+  .svc { display:flex; gap:8px; padding:0 16px } .svc div { flex:1; height:74px; border-radius:16px; background:var(--card); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; font-size:12px; font-weight:600 }
+  .mtiles { display:flex; gap:8px; padding:0 16px; overflow:hidden }
+  .mt { flex:none; width:118px; border-radius:16px; padding:10px; background:var(--card) }
+  .mt b { display:block; font-size:14px; font-weight:800; margin-top:8px } .mt small { display:block; font-size:12px; color:var(--muted); margin-top:2px }
+  .mt.geo-t { background:var(--geoT) } .mt.kud-t { background:var(--kudT) } .mt.dm-t { background:var(--dmT) } .mt.dor-t { background:var(--dorT) }
+  .vids { display:flex; gap:8px; padding:0 16px; overflow:hidden }
+  .vd { flex:none; width:118px; height:170px; border-radius:16px; background:linear-gradient(160deg,#3A3F47,#1A1C20); position:relative }
+  .vd .place { position:absolute; left:6px; bottom:6px; margin:0; font-size:11px }
+  .new { font-size:10px; font-weight:800; color:#fff; background:var(--danger,#D92D20); border-radius:5px; padding:1px 5px; margin-left:6px; vertical-align:middle }
+
+  .why { max-width:390px; margin-top:12px; font-size:13px; line-height:1.5; color:var(--ink2) }
+  .why li { margin-left:18px; margin-top:4px }
+</style>
+</head>
+<body>
+
+<h1>Рынки — набросок дизайна</h1>
+<p class="lead">У каждого рынка свой цвет и буква, и они одинаковые везде: на вкладке «Рынок», в списке рынков, в карточке продавца. Покупатель по цвету сразу понимает, на каком рынке продавец. Схема с рядами есть только у Кудайбергена, у остальных рынков вместо схемы список продавцов и «Маршрут» в 2GIS.</p>
+<span class="note">Продавцы на экране «Геология» выдуманы для примера. Сейчас у Геологии, Дордой Моторс и Дордой продавцов в приложении 0, у Кудайбергена 50+.</span>
+
+<div class="legend">
+  <div class="lg"><div class="mono kud">К</div><div><b>Кудайберген</b><small>синий, как приложение · есть схема</small></div></div>
+  <div class="lg"><div class="mono geo">Г</div><div><b>Геология</b><small>оранжевый · ул. Профсоюзная</small></div></div>
+  <div class="lg"><div class="mono dm">ДМ</div><div><b>Дордой Моторс</b><small>зелёный · ул. Лумумбы, 302</small></div></div>
+  <div class="lg"><div class="mono dor">Д</div><div><b>Дордой</b><small>фиолетовый · ул. Жанбо уулу Кадыке</small></div></div>
+</div>
+
+<div class="row">
+
+  <!-- 1. Вкладка «Рынок» — Кудайберген -->
+  <div class="shot">
+    <div class="cap">1 · Вкладка «Рынок» <span>— Кудайберген, как сейчас + переключатель</span></div>
+    <div class="phone">
+      <div class="map">
+        <svg width="390" height="844" viewBox="0 0 390 844">
+          <rect width="390" height="844" fill="#EFEAE1"/>
+          <path d="M-10 300 L400 270" stroke="#fff" stroke-width="14"/><path d="M60 -10 L90 860" stroke="#fff" stroke-width="12"/>
+          <path d="M300 -10 L330 860" stroke="#fff" stroke-width="10"/>
+          <polygon points="110,250 300,235 318,520 128,540" fill="#F7F3EC" stroke="#F2B63C" stroke-width="3" stroke-dasharray="7 6"/>
+          <g fill="#F5C76A" opacity=".75">
+            <rect x="118" y="292" width="190" height="7" rx="3"/><rect x="120" y="352" width="190" height="7" rx="3"/>
+            <rect x="122" y="412" width="190" height="7" rx="3"/><rect x="124" y="472" width="190" height="7" rx="3"/>
+          </g>
+          <g fill="#fff" stroke="#D5DAE2">
+            <g id="r"><rect x="130" y="270" width="12" height="16" rx="2"/><rect x="146" y="270" width="12" height="16" rx="2"/><rect x="162" y="270" width="12" height="16" rx="2"/><rect x="178" y="270" width="12" height="16" rx="2"/><rect x="194" y="270" width="12" height="16" rx="2"/><rect x="210" y="270" width="12" height="16" rx="2"/><rect x="226" y="270" width="12" height="16" rx="2"/><rect x="242" y="270" width="12" height="16" rx="2"/><rect x="258" y="270" width="12" height="16" rx="2"/><rect x="274" y="270" width="12" height="16" rx="2"/></g>
+            <use href="#r" y="40"/><use href="#r" y="60"/><use href="#r" y="100"/><use href="#r" y="120"/><use href="#r" y="160"/><use href="#r" y="180"/><use href="#r" y="220"/>
+          </g>
+          <g fill="#D3E0FF" stroke="#2155E6" stroke-width="1.5"><rect x="162" y="330" width="12" height="16" rx="2"/><rect x="226" y="390" width="12" height="16" rx="2"/><rect x="146" y="450" width="12" height="16" rx="2"/></g>
+          <!-- соседние рынки: только подпись-указатель на краю, без карты -->
+          <g font-family="Inter" font-weight="700" font-size="12">
+            <rect x="12" y="214" width="122" height="30" rx="15" fill="#fff" stroke="#E07B00" stroke-width="1.5"/>
+            <circle cx="30" cy="229" r="6" fill="#E07B00"/><text x="42" y="233" fill="#9A5300">↖ Геология</text>
+            <rect x="200" y="570" width="168" height="30" rx="15" fill="#fff" stroke="#0F9D58" stroke-width="1.5"/>
+            <circle cx="218" cy="585" r="6" fill="#0F9D58"/><text x="230" y="589" fill="#08703E">↓ Дордой Моторс</text>
+          </g>
+        </svg>
+      </div>
+      <div style="position:relative">
+        <div class="status"><span>09:41</span><i>●●● ◔ ▮</i></div>
+        <div class="search">🔍 Ряд, контейнер, магазин или марка</div>
+        <div class="switch">
+          <div class="chip on kud-on"><div class="mono sm kud">К</div>Кудайберген</div>
+          <div class="chip"><div class="mono sm geo">Г</div>Геология</div>
+          <div class="chip"><div class="mono sm dm">ДМ</div>Дордой Моторс</div>
+        </div>
+      </div>
+      <div class="sheet">
+        <div class="grip"></div>
+        <div style="display:flex;gap:12px;align-items:center">
+          <div class="mono lg kud">К</div>
+          <div><div class="t1">Рынок Кудайберген</div><div class="t2"><span class="open">Открыто</span> до 17:00 · 43 ряда · 42 продавца</div></div>
+        </div>
+        <div class="t2" style="margin-top:12px">Нажмите на синий контейнер — откроется продавец</div>
+      </div>
+      <div class="tabs">
+        <div class="tab"><div class="ic"></div>Главная</div><div class="tab"><div class="ic"></div>Запчасти</div>
+        <div class="tab on"><div class="ic"></div>Рынок</div><div class="tab"><div class="ic"></div>Чаты</div><div class="tab"><div class="ic"></div>Профиль</div>
+      </div>
+    </div>
+    <ul class="why">
+      <li>Сверху переключатель рынков, всё остальное как сейчас.</li>
+      <li>На краю схемы указатели на соседние рынки: Геология в 600 м, Дордой Моторс в 1 км. Нажал — переключился на этот рынок.</li>
+    </ul>
+  </div>
+
+  <!-- 2. Вкладка «Рынок» — Геология (без схемы) -->
+  <div class="shot">
+    <div class="cap">2 · Вкладка «Рынок» <span>— Геология, схемы нет</span></div>
+    <div class="phone" style="background:#fff">
+      <div class="status"><span>09:41</span><i>●●● ◔ ▮</i></div>
+      <div class="switch" style="margin-top:6px">
+        <div class="chip"><div class="mono sm kud">К</div>Кудайберген</div>
+        <div class="chip on geo-on"><div class="mono sm geo">Г</div>Геология</div>
+        <div class="chip"><div class="mono sm dm">ДМ</div>Дордой Моторс</div>
+      </div>
+      <div class="hero geo-h" style="margin-top:14px">
+        <div class="mono lg geo">Г</div>
+        <div style="flex:1">
+          <div class="t1">Рынок Геология</div>
+          <div class="t2">ул. Профсоюзная · 600 м от Кудайбергена</div>
+          <div class="t2"><span class="open">Открыто</span> до 17:00 · пн выходной</div>
+        </div>
+      </div>
+      <div class="btns" style="margin:12px 16px 0">
+        <div class="btn blue">➤ Маршрут</div><div class="btn grey">🔍 Найти здесь</div>
+      </div>
+      <div class="sec">Продавцы в приложении · 3</div>
+      <div class="seller"><div class="ava">АН</div><div><b>Автозапчасти Нурлан</b><small>Конт. 109 · у входа с Профсоюзной</small><div class="brands"><span>Toyota</span><span>Lexus</span></div></div><div class="go">›</div></div>
+      <div class="seller"><div class="ava">ЖА</div><div><b>Жапон Авто</b><small>Ряд 3, место 14</small><div class="brands"><span>Honda</span><span>Mazda</span><span>Subaru</span></div></div><div class="go">›</div></div>
+      <div class="seller"><div class="ava">МБ</div><div><b>Мерс Бишкек</b><small>Павильон 2</small><div class="brands"><span>Mercedes-Benz</span></div></div><div class="go">›</div></div>
+      <div class="t2" style="margin:10px 16px 0;font-size:13px">Место пишет сам продавец: схемы рядов у Геологии пока нет.</div>
+      <div class="tabs">
+        <div class="tab"><div class="ic"></div>Главная</div><div class="tab"><div class="ic"></div>Запчасти</div>
+        <div class="tab on"><div class="ic"></div>Рынок</div><div class="tab"><div class="ic"></div>Чаты</div><div class="tab"><div class="ic"></div>Профиль</div>
+      </div>
+    </div>
+    <ul class="why">
+      <li>Вместо карты шапка рынка в его цвете: адрес, часы, «Маршрут» в 2GIS.</li>
+      <li>«Найти здесь» открывает каталог с фильтром по этому рынку (фильтр уже есть).</li>
+    </ul>
+  </div>
+
+  <!-- 3. Вкладка «Рынок» — Дордой Моторс, пусто (так будет сейчас) -->
+  <div class="shot">
+    <div class="cap">3 · Вкладка «Рынок» <span>— Дордой Моторс, продавцов пока нет</span></div>
+    <div class="phone" style="background:#fff">
+      <div class="status"><span>09:41</span><i>●●● ◔ ▮</i></div>
+      <div class="switch" style="margin-top:6px">
+        <div class="chip"><div class="mono sm geo">Г</div>Геология</div>
+        <div class="chip on dm-on"><div class="mono sm dm">ДМ</div>Дордой Моторс</div>
+        <div class="chip"><div class="mono sm dor">Д</div>Дордой</div>
+      </div>
+      <div class="hero dm-h" style="margin-top:14px">
+        <div class="mono lg dm">ДМ</div>
+        <div style="flex:1">
+          <div class="t1">Дордой Моторс</div>
+          <div class="t2">ул. Патриса Лумумбы, 302 · 1 км от Кудайбергена</div>
+          <div class="t2"><span class="open">Открыто</span> до 17:00 · пн выходной</div>
+        </div>
+      </div>
+      <div class="btns" style="margin:12px 16px 0"><div class="btn blue">➤ Маршрут</div></div>
+      <div class="empty">
+        <div class="mono lg dm" style="margin:0 auto 12px;opacity:.35">ДМ</div>
+        <b>Продавцов Дордой Моторс пока нет в приложении</b>
+        <p>Ищите запчасть через запрос: её увидят продавцы всех рынков, и тех, кто на Дордой Моторс, тоже.</p>
+        <div class="btn blue" style="margin-top:14px">Найти запчасть</div>
+      </div>
+      <div class="tabs">
+        <div class="tab"><div class="ic"></div>Главная</div><div class="tab"><div class="ic"></div>Запчасти</div>
+        <div class="tab on"><div class="ic"></div>Рынок</div><div class="tab"><div class="ic"></div>Чаты</div><div class="tab"><div class="ic"></div>Профиль</div>
+      </div>
+    </div>
+    <ul class="why">
+      <li>Так сейчас будут выглядеть Геология, Дордой Моторс и Дордой: продавцов там 0.</li>
+      <li>Пустой экран не тупик: ведёт к запросу запчасти.</li>
+    </ul>
+  </div>
+
+  <!-- 4. Экран «Рынки» -->
+  <div class="shot">
+    <div class="cap">4 · Экран «Рынки» <span>— все рынки списком</span></div>
+    <div class="phone" style="background:#fff">
+      <div class="status"><span>09:41</span><i>●●● ◔ ▮</i></div>
+      <div class="hdr"><span style="font-size:22px">‹</span><div class="t1">Рынки</div></div>
+      <div class="t2" style="margin:0 16px 4px">Вт–вс 9:00–17:00, в понедельник рынки не работают</div>
+
+      <div class="mk">
+        <div class="mk-top"><div class="mono kud">К</div><div style="flex:1"><b>Кудайберген</b><small>ул. Патриса Лумумбы</small></div></div>
+        <div class="mk-meta"><span class="pill ok">● Открыто до 17:00</span><span class="pill">42 продавца</span><span class="pill scheme">Схема рядов</span></div>
+        <div class="mk-btns"><div class="main kud">Открыть схему</div><div>Маршрут</div></div>
+      </div>
+      <div class="mk">
+        <div class="mk-top"><div class="mono geo">Г</div><div style="flex:1"><b>Геология</b><small>ул. Профсоюзная · 600 м от Кудайбергена</small></div></div>
+        <div class="mk-meta"><span class="pill ok">● Открыто до 17:00</span><span class="pill">пока нет продавцов</span></div>
+        <div class="mk-btns"><div class="main geo">Продавцы</div><div>Маршрут</div></div>
+      </div>
+      <div class="mk">
+        <div class="mk-top"><div class="mono dm">ДМ</div><div style="flex:1"><b>Дордой Моторс</b><small>ул. Лумумбы, 302 · 1 км от Кудайбергена</small></div></div>
+        <div class="mk-meta"><span class="pill ok">● Открыто до 17:00</span><span class="pill">пока нет продавцов</span></div>
+        <div class="mk-btns"><div class="main dm">Продавцы</div><div>Маршрут</div></div>
+      </div>
+      <div class="mk">
+        <div class="mk-top"><div class="mono dor">Д</div><div style="flex:1"><b>Дордой</b><small>ул. Жанбо уулу Кадыке · север города</small></div></div>
+        <div class="mk-meta"><span class="pill ok">● Открыто до 17:00</span><span class="pill">пока нет продавцов</span></div>
+        <div class="mk-btns"><div class="main dor">Продавцы</div><div>Маршрут</div></div>
+      </div>
+    </div>
+    <ul class="why">
+      <li>Сюда ведёт ссылка «Все рынки» из профиля или с главной.</li>
+      <li>Метки цвета те же, что на вкладке: К / Г / ДМ / Д.</li>
+    </ul>
+  </div>
+
+  <!-- 5. Метка рынка у продавца -->
+  <div class="shot">
+    <div class="cap">5 · Метка рынка <span>— у продавца и запчасти</span></div>
+    <div class="phone" style="background:#fff;height:auto;padding-bottom:20px">
+      <div class="status"><span>09:41</span><i>●●● ◔ ▮</i></div>
+      <div class="sec" style="margin-top:6px">Так метка выглядит в карточках</div>
+      <div class="seller"><div class="ava">ТА</div><div><b>Тойота Азия</b><span class="place kud-p"><span class="mono sm kud">К</span>Кудайберген · Ряд 14 · Конт. 12</span></div></div>
+      <div class="seller"><div class="ava">АН</div><div><b>Автозапчасти Нурлан</b><span class="place geo-p"><span class="mono sm geo">Г</span>Геология · Конт. 109</span></div></div>
+      <div class="seller"><div class="ava">ЭС</div><div><b>Эс Моторс</b><span class="place dm-p"><span class="mono sm dm">ДМ</span>Дордой Моторс · Конт. 41</span></div></div>
+      <div class="seller"><div class="ava">БК</div><div><b>Бишкек Кузов</b><span class="place dor-p"><span class="mono sm dor">Д</span>Дордой · Проход 7, место 3</span></div></div>
+    </div>
+    <ul class="why">
+      <li>Сейчас место показывается серым текстом. С цветной меткой рынок видно с первого взгляда, в ленте, каталоге и чате.</li>
+    </ul>
+  </div>
+
+  <!-- 6. «Запчасти» -->
+  <div class="shot">
+    <div class="cap">6 · Вкладка «Запчасти» <span>— выбран рынок Геология</span></div>
+    <div class="phone">
+      <div class="status"><span>09:41</span><i>●●● ◔ ▮</i></div>
+      <div class="h1">Поиск запчастей<a>Магазины ›</a></div>
+      <div class="inp">🔍 Стойки, колодки, номер детали…</div>
+      <div class="mchips">
+        <div class="mc plain">Все рынки</div>
+        <div class="mc"><span class="mono sm kud">К</span>Кудайберген</div>
+        <div class="mc on-geo"><span class="mono sm">Г</span>Геология</div>
+        <div class="mc"><span class="mono sm dm">ДМ</span>Дордой Моторс</div>
+      </div>
+      <div class="banner" style="background:var(--geoT);color:#7A4300">
+        <span class="mono sm geo">Г</span><span>Только рынок <b>Геология</b> · ул. Профсоюзная</span><a style="color:#9A5300">Маршрут ›</a>
+      </div>
+      <div class="grid">
+        <div class="pt"><div class="ph"><span class="place geo-p"><span class="mono sm geo">Г</span>Геология</span></div><b>4 500 с</b><span class="tt">Стойка передняя KYB, левая</span><span class="fits">подходит к Camry</span><small>Автозапчасти Нурлан</small></div>
+        <div class="pt"><div class="ph"><span class="place geo-p"><span class="mono sm geo">Г</span>Геология</span></div><b>2 200 с</b><span class="tt">Колодки тормозные Akebono</span><small>Жапон Авто</small></div>
+        <div class="pt"><div class="ph"><span class="place geo-p"><span class="mono sm geo">Г</span>Геология</span></div><b>12 000 с</b><span class="tt">Фара левая Lexus RX 2012</span><small>Автозапчасти Нурлан</small></div>
+        <div class="pt"><div class="ph"><span class="place geo-p"><span class="mono sm geo">Г</span>Геология</span></div><b>800 с</b><span class="tt">Фильтр масляный Toyota</span><small>Мерс Бишкек</small></div>
+      </div>
+      <div class="tabs">
+        <div class="tab"><div class="ic"></div>Главная</div><div class="tab on"><div class="ic"></div>Запчасти</div>
+        <div class="tab"><div class="ic"></div>Рынок</div><div class="tab"><div class="ic"></div>Чаты</div><div class="tab"><div class="ic"></div>Профиль</div>
+      </div>
+    </div>
+    <ul class="why">
+      <li>Фильтр рынков уже есть в каталоге. Меняется только вид: у чипов появляется цвет и буква, выбранный чип закрашивается цветом рынка.</li>
+      <li>Под фильтром полоска «Только рынок Геология · Маршрут», чтобы было понятно, почему запчастей меньше.</li>
+      <li>При «Все рынки» на фото каждой запчасти стоит метка её рынка: в общей ленте видно, где что лежит.</li>
+    </ul>
+  </div>
+
+  <!-- 7. «Главная» -->
+  <div class="shot">
+    <div class="cap">7 · «Главная» <span>— компактная полоска «Рынки»</span></div>
+    <div class="phone">
+      <div class="status"><span>09:41</span><i>●●● ◔ ▮</i></div>
+      <div class="greet"><div class="ava" style="width:44px;height:44px">🙂</div><div><b>Салам!</b><small>Toyota Camry · 2012</small></div></div>
+      <div class="find"><div style="font-size:26px">🔍</div><div><b>Найти запчасть</b><small>Фото или голосом — продавцы ответят с ценой</small></div></div>
+      <div class="caps">Нужен мастер?</div>
+      <div class="svc"><div>🔧<span>Ремонт</span></div><div>🛞<span>Шиномонтаж</span></div><div>🚚<span>Эвакуатор</span></div><div>＋<span>Все услуги</span></div></div>
+      <div class="caps">Рынки<a>Все ›</a></div>
+      <div class="mtiles">
+        <div class="mt kud-t"><div class="mono kud">К</div><b>Кудайберген</b><small>42 продавца</small></div>
+        <div class="mt geo-t"><div class="mono geo">Г</div><b>Геология</b><small>600 м · скоро</small></div>
+        <div class="mt dm-t"><div class="mono dm">ДМ</div><b>Дордой Моторс</b><small>1 км · скоро</small></div>
+      </div>
+      <div class="caps">Видео с рынка</div>
+      <div class="vids">
+        <div class="vd"><span class="place kud-p"><span class="mono sm kud">К</span>Ряд 14</span></div>
+        <div class="vd"><span class="place geo-p"><span class="mono sm geo">Г</span>Конт. 109</span></div>
+        <div class="vd"><span class="place kud-p"><span class="mono sm kud">К</span>Ряд 3</span></div>
+      </div>
+      <div class="tabs">
+        <div class="tab on"><div class="ic"></div>Главная</div><div class="tab"><div class="ic"></div>Запчасти</div>
+        <div class="tab"><div class="ic"></div>Рынок</div><div class="tab"><div class="ic"></div>Чаты</div><div class="tab"><div class="ic"></div>Профиль</div>
+      </div>
+    </div>
+    <ul class="why">
+      <li>Небольшая полоска плиток, а не большой блок: главное на «Главной» по-прежнему «Найти запчасть». Ставим её после мастеров, перед видео.</li>
+      <li>Плитка открывает вкладку «Рынок» на этом рынке, «Все ›» — экран «Рынки».</li>
+      <li>В «Видео с рынка» на каждом ролике метка рынка.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
