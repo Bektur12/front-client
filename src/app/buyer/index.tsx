@@ -26,7 +26,7 @@ import { useRoadsidePack } from '@/store/useRoadsidePack'
 /** Rows shown before «Все». */
 const PREVIEW = 3
 
-/** 03 Главная: the car, «Найти запчасть», «Нужен мастер?», «Видео с рынка», parcels on the way, «Мои запросы». */
+/** 03 Главная по важности: «Найти запчасть», «Мои запросы» (ответы продавцов), потом рынки, видео и недавнее. */
 export default function BuyerHomeScreen() {
 	const c = useColors()
 	// Tapping the active tab again scrolls back to the top, as in every app.
@@ -46,7 +46,7 @@ export default function BuyerHomeScreen() {
 	// Keep the roadside directory fresh while there is internet — it is what helps on a pass without it.
 	const syncRoadside = useRoadsidePack((s) => s.sync)
 	useEffect(() => {
-		if (signedIn) syncRoadside()
+		syncRoadside()
 	}, [signedIn, syncRoadside])
 
 	return (
@@ -102,12 +102,6 @@ export default function BuyerHomeScreen() {
 					</LinearGradient>
 				</Pressable>
 
-				<MarketStrip />
-
-				<MarketVideos />
-
-				<RecentlyViewed />
-
 				{/* No requests yet — no empty heading either. */}
 				{items.length ? (
 					<>
@@ -133,6 +127,14 @@ export default function BuyerHomeScreen() {
 						<MyRequestItem key={`${item.kind}-${item.request.id}`} row={item} />
 					))}
 				{requests.isFetchingNextPage || services.isFetchingNextPage ? <RequestCardSkeleton /> : null}
+
+				{/* Ниже — то, что смотрят, когда своё уже проверили: рынки, видео, недавнее. */}
+				<View style={{ height: 6 }} />
+				<MarketStrip />
+
+				<MarketVideos title={t('Видео с рынка')} />
+
+				<RecentlyViewed />
 
 
 			</ScrollView>

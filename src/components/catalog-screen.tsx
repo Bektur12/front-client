@@ -1,25 +1,25 @@
 import { useRef, useEffect, useState } from 'react'
-import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { FlatList, Pressable, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useScrollToTop } from 'expo-router'
-import { EmptyState, ProductCard, QueryErrorBanner, Skeleton, SkeletonProductGrid } from '@/components/ui'
-import { BrandLogo } from '@/components/ui/brand'
+import { Button, EmptyState, ProductCard, QueryErrorBanner, Skeleton, SkeletonProductGrid } from '@/components/ui'
 import { SearchIcon } from '@/components/icons'
+import { CameraV23Icon, CrossIcon, MicV23Icon } from '@/components/buyer-v23'
 import { fixed, fontFamily, fs, sectionTitle, useColors } from '@/theme'
 import { useVideoViewer } from '@/store/useVideoViewer'
-import { MarketVideos } from '@/components/market-videos'
-import { RecentlyViewed } from '@/components/recently-viewed'
 import { resolveUrl } from '@/lib/api'
 import { countLabel, formatPartPrice, plural } from '@/lib/format'
 import { useSearchParts, useSignedIn } from '@/api/catalog'
 import { useCategories } from '@/api/directory'
+import { useRequestHints } from '@/api/requests'
 import { useCars } from '@/api/garage'
 import type { PartCard } from '@/api/types'
 import { type CatalogSort, toPartFilters, useCatalogFilters } from '@/store/useCatalogFilters'
 import { useSession } from '@/store/useSession'
 import { useRecentSearches } from '@/store/useRecentSearches'
 import { briefPlace } from '@/lib/shop-place'
-import { MarketChips, MarketFilterBanner } from '@/components/market-chips'
+import { MarketFilterBanner } from '@/components/market-chips'
+import { CategoryBack, CategoryGrid, ContextRow, GroupTitle } from '@/components/catalog-filters'
 import { t } from '@/i18n'
 import { KEYBOARD_DONE } from '@/components/keyboard-done'
 import { requireSignIn } from '@/components/sign-in-prompt'
@@ -48,6 +48,8 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 	const categories = useCategories()
 	const [text, setText] = useState(f.q)
 	const [focused, setFocused] = useState(false)
+	// «Не нашли?» над меню — только когда человек пролистал витрину, а не с первой секунды поверх товаров.
+	const [showAsk, setShowAsk] = useState(false)
 	const recent = useRecentSearches()
 
 	// Debounce typing — the search runs 350 ms after the last key.
@@ -61,6 +63,18 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 	const isMaster = useSession((s) => s.role) === 'MASTER'
 	const carId = f.carId === undefined ? carList.find((car) => car.isPrimary)?.id ?? null : f.carId
 	const partFilters = toPartFilters({ ...f, carId })
+	// «Часто ищут» — для машины из гаража с сервера; гостю — самое частое на рынке.
+	const hints = useRequestHints(carId ?? undefined, 8, signedIn && focused)
+	const popular = hints.data?.length ? hints.data.map((hint) => hint.text) : POPULAR
+	const runSearch = (value: string) => {
+		setText(value)
+		useCatalogFilters.getState().setQ(value)
+		recent.add(value)
+	}
+	/** «Найти запчасть»: с тем, что уже набрали, и машиной; `start` — сразу открыть камеру или запись голоса. */
+	const askSellers = (start?: 'camera' | 'voice') =>
+		requireSignIn() &&
+		router.push({ pathname: '/search-part', params: { text: f.q.trim() || undefined, carId: carId ? String(carId) : undefined, start } })
 	const search = useSearchParts(partFilters)
 	const pages = search.data?.pages
 	const items = pages?.flatMap((page) => page.items) ?? []
@@ -83,13 +97,14 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 		if (pending.length === 2) flush()
 	}
 	flush()
+	const category = (categories.data ?? []).find((item) => item.id === f.categoryId)
 	const sort = SORTS.find((s) => s.value === f.sort) ?? SORTS[0]
 	const nextSort = SORTS[(SORTS.indexOf(sort) + 1) % SORTS.length]
 
 	const header = (
 		<View style={{ gap: 14, paddingBottom: 14 }}>
 			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-				<Text style={{ flex: 1, fontSize: fs.h1, fontFamily: fontFamily(700), letterSpacing: -0.26, color: c.ink }}>{t('Поиск запчастей')}</Text>
+				<Text style={{ flex: 1, fontSize: fs.h1, fontFamily: fontFamily(700), letterSpacing: -0.26, color: c.ink }}>{t('Запчасти')}</Text>
 				<Pressable onPress={() => router.push('/shops')} hitSlop={8}>
 					<Text style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Магазины ›')}</Text>
 				</Pressable>
@@ -112,12 +127,13 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 				<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 					value={text}
 					onChangeText={setText}
-					placeholder={t('Стойки, колодки, номер детали…')}
+					placeholder={t('Колодки, фильтр…')}
 					placeholderTextColor={c.fillInk}
 					returnKeyType="search"
 					onFocus={() => setFocused(true)}
 					onBlur={() => {
-						setFocused(false)
+						// Подсказки прячем чуть позже: в браузере поле теряет фокус раньше, чем срабатывает нажатие на пилюлю.
+						setTimeout(() => setFocused(false), 200)
 						// Left the field with something found — worth offering again next time.
 						if (text.trim() && total) recent.add(text)
 					}}
@@ -127,126 +143,73 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 					}}
 					style={{ flex: 1, minWidth: 0, fontSize: fs.lg, fontFamily: fontFamily(400), color: c.ink, padding: 0 }}
 				/>
+				{text ? (
+					<Pressable onPress={() => runSearch('')} hitSlop={8} accessibilityLabel={t('Очистить')} style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}>
+						<CrossIcon size={14} color={c.muted} />
+					</Pressable>
+				) : (
+					// Показать или сказать проще, чем написать: фото или голос сразу уходят продавцам в «Найти запчасть».
+					<View style={{ flexDirection: 'row', gap: 4, marginRight: -4 }}>
+						<Pressable onPress={() => askSellers('camera')} hitSlop={4} accessibilityLabel={t('Найти по фото')} style={{ width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+							<CameraV23Icon size={22} color={c.brandStrong} />
+						</Pressable>
+						<Pressable onPress={() => askSellers('voice')} hitSlop={4} accessibilityLabel={t('Сказать голосом')} style={{ width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+							<MicV23Icon size={22} color={c.brandStrong} />
+						</Pressable>
+					</View>
+				)}
 			</View>
 
-			{focused && !text && recent.items.length ? (
-				<View style={{ gap: 8 }}>
-					<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-						<Text style={{ flex: 1, ...sectionTitle, color: c.inkSecondary }}>{t('Недавно искали')}</Text>
-						<Text onPress={recent.clear} style={{ fontSize: fs.md, fontFamily: fontFamily(600), color: c.brandStrong }}>{t('Очистить')}</Text>
-					</View>
-					<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-						{recent.items.map((item) => (
-							<Pressable
-								key={item}
-								onPress={() => {
-									setText(item)
-									useCatalogFilters.getState().setQ(item)
-									recent.add(item)
-								}}
-								onLongPress={() => recent.remove(item)}
-								style={{ height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.border, justifyContent: 'center' }}
-							>
-								<Text numberOfLines={1} style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.ink }}>{item}</Text>
-							</Pressable>
-						))}
+			{focused && !text ? (
+				<View style={{ gap: 14 }}>
+					{recent.items.length ? (
+						<View style={{ gap: 8 }}>
+							<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+								<Text style={{ flex: 1, ...sectionTitle, color: c.inkSecondary }}>{t('Недавно искали')}</Text>
+								<Text onPress={recent.clear} style={{ fontSize: fs.md, fontFamily: fontFamily(600), color: c.brandStrong }}>{t('Очистить')}</Text>
+							</View>
+							<SearchChips items={recent.items} onPick={runSearch} onLongPress={recent.remove} />
+						</View>
+					) : null}
+					<View style={{ gap: 8 }}>
+						<Text style={{ ...sectionTitle, color: c.inkSecondary }}>{t('Часто ищут')}</Text>
+						<SearchChips items={popular.filter((item) => !recent.items.includes(item))} onPick={runSearch} />
 					</View>
 				</View>
 			) : null}
 
-			<Text style={{ ...sectionTitle, color: c.inkSecondary }}>{t('Ищу для машины')}</Text>
-
-			<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-				{carList.map((car) => {
-					const active = carId === car.id
-					return (
-						<Pressable
-							key={car.id}
-							onPress={() => f.pickCar(car.id)}
-							style={{
-								height: 44,
-								borderRadius: 20,
-								paddingLeft: 6,
-								paddingRight: 14,
-								flexDirection: 'row',
-								alignItems: 'center',
-								gap: 8,
-								backgroundColor: active ? c.brandTint : c.card,
-								borderWidth: 2,
-								borderColor: active ? c.brand : c.border,
-							}}
-						>
-							<BrandLogo brand={car.brand} size={28} />
-							<Text style={{ fontSize: fs.md, fontFamily: fontFamily(active ? 700 : 600), color: active ? c.brandStrong : c.inkSecondary }}>
-								{car.label}
-							</Text>
-						</Pressable>
-					)
-				})}
-				<Pressable
-					onPress={() => router.push('/pick-brand')}
-					style={{
-						height: 44,
-						borderRadius: 20,
-						paddingLeft: f.brand ? 6 : 14,
-						paddingRight: 14,
-						backgroundColor: carId === null && f.brand ? c.brandTint : c.card,
-						borderWidth: 2,
-						borderColor: carId === null && f.brand ? c.brand : c.border,
-						flexDirection: 'row',
-						alignItems: 'center',
-						gap: 8,
-					}}
-				>
-					{carId === null && f.brand ? <BrandLogo brand={f.brand} size={28} /> : null}
-					<Text
-						style={{
-							fontSize: fs.md,
-							fontFamily: fontFamily(carId === null && f.brand ? 700 : 600),
-							color: carId === null && f.brand ? c.brandStrong : c.ink,
-						}}
-					>
-						{carId === null && f.brand ? `${f.modelLabel ?? f.brand.shortName} ›` : isMaster ? t('Выберите марку ›') : t('Любая марка ›')}
-					</Text>
-				</Pressable>
-			</ScrollView>
-
-			<MarketChips value={f.marketId} onChange={f.setMarket} />
+			{/* «Для какой машины» и «на каком рынке» — две кнопки, выбор в шторке снизу. */}
+			<ContextRow
+				car={{ cars: carList, carId, brand: f.brand, modelLabel: f.modelLabel, isMaster, pickCar: f.pickCar, pickBrand: (brand) => f.pickBrand(brand) }}
+				marketId={f.marketId}
+				onMarket={f.setMarket}
+			/>
 			<MarketFilterBanner marketId={f.marketId} />
 
-			<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-				{[{ id: null, name: t('Все') }, ...(categories.data ?? [])].map((category) => {
-					const active = f.categoryId === category.id
-					return (
-						<Pressable
-							key={category.id ?? 'all'}
-							onPress={() => f.setCategory(category.id)}
-							style={{
-								height: 38,
-								paddingHorizontal: 14,
-								borderRadius: 18,
-								backgroundColor: active ? c.brand : c.card,
-								borderWidth: active ? 0 : 1,
-								borderColor: c.border,
-								alignItems: 'center',
-								justifyContent: 'center',
-							}}
-						>
-							<Text style={{ fontSize: fs.md, fontFamily: fontFamily(600), color: active ? fixed.white : c.ink }}>{category.name}</Text>
-						</Pressable>
-					)
-				})}
-				{categories.isLoading ? [92, 120, 84, 108].map((w, i) => <Skeleton key={i} width={w} height={38} radius={18} />) : null}
-			</ScrollView>
+			{/* Ничего не ищут — сетка категорий; выбрали категорию — она одной строкой «‹ Тормоза». */}
+			{category ? (
+				<CategoryBack category={category} onBack={() => f.setCategory(null)} />
+			) : !f.q.trim() ? (
+				<>
+					<GroupTitle>{t('Категории')}</GroupTitle>
+					<CategoryGrid categories={categories.data ?? []} loading={categories.isLoading} onPick={f.setCategory} />
+				</>
+			) : null}
 
 			<QueryErrorBanner error={search.error} onRetry={() => search.refetch()} offlineText={t('Нет сети. Покажем запчасти, когда появится')} />
 
-			{/* Video ads from the market — the same strip as on the home screen. */}
-			{!f.q.trim() && f.categoryId == null ? (
-				<>
-					<MarketVideos />
-					<RecentlyViewed />
-				</>
+			{/* К машине на витрине ничего — не «0 подходят», а выход: спросить продавцов, у них часто есть на складе. */}
+			{appliedCar && fitsTotal === 0 ? (
+				<View style={{ borderRadius: 18, padding: 16, gap: 12, backgroundColor: c.brandTint }}>
+					<View style={{ gap: 4 }}>
+						<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(800), color: c.brandInk }}>{t('К {0} пока нет на витрине', appliedCar.displayName)}</Text>
+						<Text style={{ fontSize: fs.sm, lineHeight: 20, fontFamily: fontFamily(500), color: c.brandInk }}>
+							{t('Продавцы держат много запчастей на складе. Спросите — ответят с ценой')}
+						</Text>
+					</View>
+					{/* стандартная кнопка: Pressable со стилем-функцией на iPhone терял фон — белый текст пропадал */}
+					<Button label={t('Спросить продавцов')} onPress={() => askSellers()} />
+				</View>
 			) : null}
 
 			<View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -260,7 +223,7 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 						' '
 					) : (
 						<>
-							{appliedCar && fitsTotal != null ? (
+							{appliedCar && fitsTotal ? (
 								<>
 									<Text style={{ fontFamily: fontFamily(700), color: c.ink }}>
 										{fitsTotal} {plural(fitsTotal, [t('подходит'), t('подходят'), t('подходят')])}
@@ -292,6 +255,11 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 				ListHeaderComponent={header}
 				contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 16, paddingBottom: 90 + floatingRoom, gap: 20 }}
 				showsVerticalScrollIndicator={false}
+				scrollEventThrottle={100}
+				onScroll={(e) => {
+					const scrolled = e.nativeEvent.contentOffset.y > 500
+					if (scrolled !== showAsk) setShowAsk(scrolled)
+				}}
 				onEndReached={() => search.hasNextPage && !search.isFetchingNextPage && search.fetchNextPage()}
 				renderItem={({ item: row }) =>
 					row.kind === 'others' ? (
@@ -311,7 +279,15 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 				ListEmptyComponent={
 					search.isSuccess ? (
 						<EmptyState
-							title={t('Ничего не нашли')}
+							title={
+								category
+									? appliedCar
+										? t('{0} для {1} пока нет на витрине', category.name, appliedCar.displayName)
+										: t('В «{0}» пока пусто', category.name)
+									: f.q.trim()
+										? t('«{0}» пока нет на витрине', f.q.trim())
+										: t('Ничего не нашли')
+							}
 							icon={SearchIcon}
 							hint={t('Спросите у продавцов рынка — кто-то наверняка держит её не на витрине')}
 							secondary={
@@ -327,12 +303,7 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 							}
 							action={{
 								label: t('Спросить у продавцов'),
-								onPress: () =>
-									requireSignIn() &&
-									router.push({
-										pathname: '/search-part',
-										params: { ...(f.q.trim() ? { text: f.q.trim() } : {}), ...(carId ? { carId: String(carId) } : {}) },
-									}),
+								onPress: () => askSellers(),
 							}}
 						/>
 					) : search.isLoading ? (
@@ -341,14 +312,9 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 				}
 			/>
 
+			{showAsk && items.length ? (
 			<Pressable
-				onPress={() =>
-					requireSignIn() &&
-					router.push({
-						pathname: '/search-part',
-						params: { text: f.q.trim() || undefined, carId: carId ? String(carId) : undefined },
-					})
-				}
+				onPress={() => askSellers()}
 				style={{
 					position: 'absolute',
 					left: 16,
@@ -369,14 +335,37 @@ export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = 
 					elevation: 8,
 				}}
 			>
-				<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flex: 1, fontSize: fs.md, fontFamily: fontFamily(400), color: fixed.white }}>{t('Не нашли? Спросите продавцов')}</Text>
+				<Text numberOfLines={1} style={{ flex: 1, fontSize: fs.md, fontFamily: fontFamily(500), color: fixed.white }}>{t('Не нашли нужное?')}</Text>
 				<Text style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: fixed.linkOnDark }}>{t('Спросить →')}</Text>
 			</Pressable>
+			) : null}
 		</View>
 	)
 }
 
 type Row = { kind: 'parts'; parts: PartCard[] } | { kind: 'others' }
+
+/** «Часто ищут», пока сервер не ответил или гость без гаража. */
+const POPULAR = [t('Колодки'), t('Масляный фильтр'), t('Аккумулятор'), t('Амортизаторы'), t('Свечи'), t('Фара'), t('Моторное масло'), t('Шины')]
+
+/** Пилюли запросов: нажал — сразу ищем. */
+function SearchChips({ items, onPick, onLongPress }: { items: string[]; onPick: (item: string) => void; onLongPress?: (item: string) => void }) {
+	const c = useColors()
+	return (
+		<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+			{items.map((item) => (
+				<Pressable
+					key={item}
+					onPress={() => onPick(item)}
+					onLongPress={onLongPress ? () => onLongPress(item) : undefined}
+					style={{ height: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.border, justifyContent: 'center' }}
+				>
+					<Text numberOfLines={1} style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.ink }}>{item}</Text>
+				</Pressable>
+			))}
+		</View>
+	)
+}
 
 /** A part in a grid — the catalog and «Похожие» on the part card. A video part opens the feed on it. */
 export function PartTile({ part }: { part: PartCard }) {

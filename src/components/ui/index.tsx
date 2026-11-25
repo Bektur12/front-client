@@ -157,10 +157,15 @@ export function Segmented({
 							borderRadius: 9,
 							alignItems: 'center',
 							justifyContent: 'center',
+							paddingHorizontal: 4,
 							backgroundColor: active ? c.brand : 'transparent',
 						}}
 					>
+						{/* A long label (in Kyrgyz too) shrinks inside its segment instead of spilling out of it. */}
 						<Text
+							numberOfLines={1}
+							adjustsFontSizeToFit
+							minimumFontScale={0.7}
 							style={{
 								fontSize: fs.md,
 								fontFamily: fontFamily(active ? activeWeight : 600),
@@ -243,10 +248,10 @@ export function SettingsRow({
 				borderBottomColor: c.surface,
 			}}
 		>
-			<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(400), color: labelColor ?? c.ink }}>{label}</Text>
+			<Text numberOfLines={2} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(400), color: labelColor ?? c.ink }}>{label}</Text>
 			{right ??
 				(value ? (
-					<Text style={{ fontSize: fs.base, fontFamily: fontFamily(valueWeight), color: valueColor ?? c.muted }}>
+					<Text numberOfLines={1} style={{ flexShrink: 1, marginLeft: 12, fontSize: fs.base, fontFamily: fontFamily(valueWeight), color: valueColor ?? c.muted }}>
 						{value}
 					</Text>
 				) : null)}

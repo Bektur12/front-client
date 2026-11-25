@@ -1,6 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { askForPushAt } from '@/lib/push'
+import { haptic } from '@/lib/haptics'
 import { useConfirmLeave } from '@/lib/use-confirm-leave'
 import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -28,7 +29,7 @@ import { goBack } from '@/lib/navigation'
 export default function SearchPartScreen() {
 	const c = useColors()
 	const insets = useSafeAreaInsets()
-	const params = useLocalSearchParams<{ text?: string; carId?: string }>()
+	const params = useLocalSearchParams<{ text?: string; carId?: string; start?: 'camera' | 'voice' }>()
 	const cars = useCars()
 	const clientCar = useClientCar((s) => s.car)
 	const pickedCarId = useClientCar((s) => s.selected) ?? (params.carId ? Number(params.carId) : null)
@@ -42,6 +43,20 @@ export default function SearchPartScreen() {
 		if (said) setText((current) => (current.trim() ? current : said.slice(0, 200)))
 	})
 	const create = useCreateRequest()
+
+	// Пришли с 📷 / 🎤 из поиска запчастей — сразу камера или запись, без лишнего нажатия. Только один раз.
+	const started = useRef(false)
+	useEffect(() => {
+		if (started.current || !params.start) return
+		// Дать экрану открыться: камера поверх анимации перехода на iOS не показывается.
+		const timer = setTimeout(() => {
+			started.current = true
+			if (params.start === 'camera') uploads.pick('camera')
+			else voice.start()
+		}, 350)
+		return () => clearTimeout(timer)
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [params.start])
 
 	// The client's car lives only while this screen is open.
 	useEffect(() => () => useClientCar.getState().clear(), [])
@@ -74,6 +89,7 @@ export default function SearchPartScreen() {
 			},
 			{
 				onSuccess: (request) => {
+					haptic.success()
 					leave(() => router.replace({ pathname: '/request', params: { id: String(request.id) } }))
 					askForPushAt('request')
 				},
@@ -304,9 +320,18 @@ export default function SearchPartScreen() {
 				{brand ? (
 					<View style={{ flexDirection: 'row', gap: 10, alignItems: 'flex-start', borderRadius: 14, backgroundColor: c.brandTint, paddingVertical: 12, paddingHorizontal: 14 }}>
 						<PaperPlaneIcon size={18} color={c.brandStrong} strokeWidth={2.2} />
+						{estimate.data?.anyBrand ? (
+							// Продавцов марки нет — запрос всё равно уйдёт: всем продавцам рынка, а не в тупик.
+							<Text style={{ flex: 1, fontSize: fs.md, lineHeight: 21.5, fontFamily: fontFamily(400), color: c.brandInk }}>
+								{t('Продавцов {0} пока нет — спросим', brand)}{' '}
+								<Text style={{ fontFamily: fontFamily(700) }}>{t('всех продавцов рынка')}</Text>
+								{recipients != null ? ` — ${recipients} ${plural(recipients, [t('магазин'), t('магазина'), t('магазинов')])}` : ''}{t('. Многие держат запчасти и для редких марок.')}
+							</Text>
+						) : (
 						<Text style={{ flex: 1, fontSize: fs.md, lineHeight: 21.5, fontFamily: fontFamily(400), color: c.brandInk }}>{t('Спросим')}{' '}<Text style={{ fontFamily: fontFamily(700) }}>{t('всех продавцов {0}', brand)}</Text>
 							{recipients != null ? ` — ${recipients} ${plural(recipients, [t('магазин'), t('магазина'), t('магазинов')])}` : ''}{t('. Обычно отвечают за 5–10 минут.')}
 						</Text>
+						)}
 					</View>
 				) : null}
 

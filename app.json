@@ -14,15 +14,21 @@
         "NSLocationWhenInUseUsageDescription": "Найдём мастеров рядом, когда вы отправляете заявку, и покажем дорогу к магазину.",
         "NSMicrophoneUsageDescription": "Скажите голосом, какая запчасть нужна или что случилось с машиной, и отправляйте голосовые в чате.",
         "NSPhotoLibraryUsageDescription": "Прикрепите фото или видео запчасти к запросу, товару или сообщению.",
-        "NSCameraUsageDescription": "Сфотографируйте или снимите видео запчасти, чтобы показать продавцу или покупателям."
+        "NSCameraUsageDescription": "Сфотографируйте или снимите видео запчасти, чтобы показать продавцу или покупателям.",
+        "NSSupportsLiveActivities": true,
+        "KudaiberdiApiUrl": "https://kudaibergen-back-production.up.railway.app/api/v1",
+        "UIBackgroundModes": [
+          "audio"
+        ]
       },
       "bundleIdentifier": "kg.kudaiberdi.app",
-      "buildNumber": "1",
+      "buildNumber": "25",
       "supportsTablet": false,
       "config": {
         "usesNonExemptEncryption": false
       },
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "appleTeamId": "745P2ZBQ77"
     },
     "android": {
       "adaptiveIcon": {
@@ -103,7 +109,8 @@
       ],
       "expo-font",
       "expo-status-bar",
-      "expo-image"
+      "expo-image",
+      "@bacons/apple-targets"
     ],
     "experiments": {
       "typedRoutes": true,

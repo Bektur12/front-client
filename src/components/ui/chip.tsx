@@ -39,6 +39,7 @@ export function Chip({
 			}}
 		>
 			<Text
+				numberOfLines={1}
 				style={{
 					fontSize,
 					fontFamily: fontFamily(selected ? 700 : 600),

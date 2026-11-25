@@ -7,6 +7,7 @@ import { Linking, Platform } from 'react-native'
 import Constants, { ExecutionEnvironment } from 'expo-constants'
 import * as Notifications from 'expo-notifications'
 import { AndroidImportance, AndroidNotificationVisibility } from 'expo-notifications'
+import { liveActivity } from '../../modules/kudaiberdi-live-activity'
 import { create } from 'zustand'
 import { router } from 'expo-router'
 import { apiFetch } from '@/lib/api'
@@ -19,6 +20,8 @@ import type { Chat, Me } from '@/api/types'
 import { t } from '@/i18n'
 
 const TOKEN_KEY = 'push.token'
+/** Push-to-start токен Live Activity (iPhone 17.2+), пока приложение запущено; null — карточек нет. */
+let liveActivityToken: string | null = null
 
 /** Payload the backend puts into `data` (all values are strings). */
 interface PushData {
@@ -66,7 +69,8 @@ if (Platform.OS !== 'web') {
 			textInput: { submitButtonTitle: t('Отправить'), placeholder: t('Цена, сом') },
 			options: { opensAppToForeground: false },
 		},
-		{ identifier: 'NOT_HAVE', buttonTitle: t('Нет'), options: { opensAppToForeground: false } },
+		// «Нет» — красным (iOS: destructive): глаз сразу отличает его от «Есть»
+		{ identifier: 'NOT_HAVE', buttonTitle: t('Нет'), options: { opensAppToForeground: false, isDestructive: true } },
 		{ identifier: 'VOICE', buttonTitle: t('Ответить голосом'), options: { opensAppToForeground: true } },
 	]).catch(() => {})
 	// «Есть» to the buyer: go to the seller at once — write or walk there.
@@ -78,7 +82,7 @@ if (Platform.OS !== 'web') {
 	// «Ответить голосом» on both opens the answer screen with the recording already running.
 	Notifications.setNotificationCategoryAsync('NEW_SERVICE_REQUEST', [
 		{ identifier: 'CAN_HELP', buttonTitle: t('Могу помочь'), options: { opensAppToForeground: true } },
-		{ identifier: 'NOT_MINE', buttonTitle: t('Не моё'), options: { opensAppToForeground: false } },
+		{ identifier: 'NOT_MINE', buttonTitle: t('Не моё'), options: { opensAppToForeground: false, isDestructive: true } },
 		{ identifier: 'VOICE', buttonTitle: t('Ответить голосом'), options: { opensAppToForeground: true } },
 	]).catch(() => {})
 }
@@ -95,7 +99,11 @@ async function registerDevice({ ask = false } = {}) {
 	if (typeof token !== 'string' || !token) return
 	// actions: это приложение само рисует пуши с кнопками («Есть / Нет», «Написать / Как пройти») — сервер шлёт их только
 	// таким устройствам; старым версиям на Android уходит обычный пуш
-	await apiFetch('/devices', { method: 'POST', body: { token, platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID', actions: true } })
+	// liveActivityToken: iPhone 17.2+ — по нему бэкенд показывает новый запрос карточкой на экране блокировки
+	await apiFetch('/devices', {
+		method: 'POST',
+		body: { token, platform: Platform.OS === 'ios' ? 'IOS' : 'ANDROID', actions: true, liveActivityToken: liveActivityToken ?? undefined },
+	})
 	await setItem(TOKEN_KEY, token)
 }
 
@@ -244,6 +252,7 @@ async function handleResponse(response: Notifications.NotificationResponse) {
 			return
 		}
 		queryClient.invalidateQueries({ queryKey: incomingKeys.all })
+		liveActivity.end(Number(data.requestId))
 		return
 	}
 	if (response.actionIdentifier === 'NOT_HAVE' && data.requestId) {
@@ -252,6 +261,7 @@ async function handleResponse(response: Notifications.NotificationResponse) {
 			body: { answer: 'NOT_HAVE' },
 			idempotencyKey: `push-${response.notification.request.identifier}`,
 		}).catch(() => {})
+		liveActivity.end(Number(data.requestId))
 		return
 	}
 	if (response.actionIdentifier === 'NOT_MINE' && data.requestId) {
@@ -291,6 +301,17 @@ export function PushProvider({ children }: { children: ReactNode }) {
 
 	useEffect(() => {
 		if (signedIn && userId !== null) registerDevice().catch(() => {})
+	}, [signedIn, userId])
+
+	// Токен Live Activity iOS выдаёт отдельно и может сменить — каждый раз отдаём бэкенду вместе с устройством.
+	useEffect(() => {
+		if (!signedIn || userId === null) return
+		const subscription = liveActivity.onStartToken((token) => {
+			if (token === liveActivityToken) return
+			liveActivityToken = token
+			registerDevice().catch(() => {})
+		})
+		return () => subscription?.remove()
 	}, [signedIn, userId])
 
 	useEffect(() => {
