@@ -36,6 +36,7 @@
     "expo-system-ui": "~58.0.7",
     "expo-video": "~58.0.13",
     "expo-video-thumbnails": "~58.0.2",
+    "lucide-react-native": "1.70.0",
     "maplibre-gl": "^6.11.2",
     "nativewind": "^4.2.7",
     "react": "19.3.0",
