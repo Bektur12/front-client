@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
 import { LinearGradient } from 'expo-linear-gradient'
 import { Button } from '@/components/ui'
 import { BoxOutlineIcon, LoupeIcon, TickIcon, WrenchIcon } from '@/components/buyer-v23'
@@ -10,6 +9,8 @@ import { fixed, fontFamily, fs, useColors } from '@/theme'
 import { useSetRole } from '@/api/me'
 import type { UserRole } from '@/api/types'
 import { t } from '@/i18n'
+import { resetTo } from '@/lib/navigation'
+import { useSession } from '@/store/useSession'
 
 const ROLES = [
 	{ value: 'BUYER' as const, who: t('покупатель'), title: t('Ищу запчасти'), description: t('Для своей машины — продавцы рынка ответят с ценой, найду и мастера'), icon: LoupeIcon },
@@ -99,12 +100,16 @@ export default function RoleScreen() {
 							// Buyer goes home [03] (the car comes from the tech passport [04]); seller registers the box [11];
 							// master fills «Мой сервис» [20].
 							onSuccess: (me) => {
-								if (role === 'MASTER') router.replace(me.hasMaster ? '/master' : { pathname: '/master-profile', params: { first: '1' } })
-								else router.replace(role === 'BUYER' ? '/buyer' : me.hasShop ? '/seller' : '/box-select')
+								if (role === 'MASTER') resetTo(me.hasMaster ? '/master' : { pathname: '/master-profile', params: { first: '1' } })
+								else resetTo(role === 'BUYER' ? '/buyer' : me.hasShop ? '/seller' : '/box-select')
 							},
 						})
 					}
 				/>
+				{/* Wrong number or a reset account — back to the phone screen without choosing a role. */}
+				<Pressable onPress={() => useSession.getState().signOut()} hitSlop={8} style={{ height: 44, marginTop: 4, alignItems: 'center', justifyContent: 'center' }}>
+					<Text style={{ fontSize: fs.base, fontFamily: fontFamily(600), color: c.muted }}>{t('Войти с другим номером')}</Text>
+				</Pressable>
 			</View>
 		</View>
 	)

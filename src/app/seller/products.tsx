@@ -10,13 +10,15 @@ import { CameraIcon, PlusIcon, SearchIcon } from '@/components/icons'
 import { ReelsIcon } from '@/components/video-v23'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
 import { resolveUrl } from '@/lib/api'
-import { formatNumber, formatPrice, plural } from '@/lib/format'
+import { formatNumber, formatPartPrice, formatPrice, plural } from '@/lib/format'
 import { flattenPages } from '@/api/pagination'
-import { useMyParts, useMyPartsSummary } from '@/api/parts'
+import { useDeletePart, useMyParts, useMyPartsSummary } from '@/api/parts'
+import { confirmDeletePart } from '@/lib/delete-part'
 import type { MyPartItem, MyPartsFilter } from '@/api/types'
 import { usePartDraft } from '@/store/usePartDraft'
 import { t } from '@/i18n'
 import { PlayIcon } from '@/components/voice'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
 
 /** 24 «Мои запчасти» (tab «Товары»). Counters come from GET /my/parts/summary. */
 export default function SellerProductsScreen() {
@@ -73,7 +75,7 @@ export default function SellerProductsScreen() {
 				</Pressable>
 			</View>
 
-			<FlatList
+			<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
 				ref={list}
 				data={items}
 				keyExtractor={(item) => String(item.id)}
@@ -103,7 +105,7 @@ export default function SellerProductsScreen() {
 							}}
 						>
 							<SearchIcon size={20} color={c.muted} strokeWidth={2.4} />
-							<TextInput
+							<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 								value={q}
 								onChangeText={setQ}
 								placeholder={t('Поиск по моим запчастям')}
@@ -203,6 +205,7 @@ export default function SellerProductsScreen() {
 
 function PartRow({ part }: { part: MyPartItem }) {
 	const c = useColors()
+	const remove = useDeletePart()
 	// a video part has no photo — its poster is the thumbnail
 	const photo = resolveUrl(part.mainPhoto?.thumbUrl ?? part.mainPhoto?.url ?? part.videoPosterUrl)
 	const badge =
@@ -217,6 +220,7 @@ function PartRow({ part }: { part: MyPartItem }) {
 	return (
 		<Pressable
 			onPress={() => router.push({ pathname: '/new-part', params: { id: String(part.id) } })}
+			onLongPress={() => confirmDeletePart(() => remove.mutateAsync(part.id))}
 			style={{ flexDirection: 'row', gap: 12, borderRadius: 16, backgroundColor: c.card, padding: 10 }}
 		>
 			<View>
@@ -242,7 +246,7 @@ function PartRow({ part }: { part: MyPartItem }) {
 					{part.brands[0] ? <BrandLogo brand={part.brands[0]} size={18} /> : null}
 				</View>
 				<View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-					<Text style={{ fontSize: fs.xl, fontFamily: fontFamily(800), color: c.ink }}>{formatPrice(part.price) || '—'}</Text>
+					<Text style={{ fontSize: fs.xl, fontFamily: fontFamily(800), color: c.ink }}>{(part.status === 'DRAFT' ? formatPrice(part.price) : formatPartPrice(part.price)) || '—'}</Text>
 					<Badge label={badge.label} tone={badge.tone} />
 				</View>
 			</View>

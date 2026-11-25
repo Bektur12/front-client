@@ -15,7 +15,7 @@ import { resolveUrl } from '@/lib/api'
 import { formatDay } from '@/lib/format'
 import { COUNTRY_CODE, formatE164, formatLocalPhone, isValidLocalPhone, toE164 } from '@/lib/phone'
 import { useSettings, useUpdateMe, useUpdateSettings } from '@/api/me'
-import { useMyShop, useSetShopAvatar, useUpdateShop } from '@/api/shop'
+import { useAddShopPhoto, useMyShop, useSetShopCover, useUpdateShop } from '@/api/shop'
 import { usePhotoUploads } from '@/api/media'
 import { useMyParts, useMyPartsSummary } from '@/api/parts'
 import { flattenPages } from '@/api/pagination'
@@ -25,9 +25,11 @@ import { toLang, useSession } from '@/store/useSession'
 import type { MyPartItem, MyShop } from '@/api/types'
 import { openSupport } from '@/lib/support'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { formatSchedule } from '@/lib/hours'
 
 /**
- * 15 «Мой бокс» — a profile like on social apps: avatar (tap — change), counters, name and place, my brands,
+ * 15 «Мой бокс» — a profile like on social apps: the banner (tap — change), counters, name and place, my brands,
  * «Изменить» / «Выложить», and a grid of my posts (video ones — the poster with ▶). Settings and the 30-day numbers
  * live behind ☰.
  */
@@ -42,15 +44,18 @@ export default function SellerBoxScreen() {
 	const parts = useMyParts('ALL')
 	const items = flattenPages(parts.data)
 	const pull = usePullRefresh(() => [shop.refetch(), parts.refetch(), summary.refetch()])
-	const setAvatar = useSetShopAvatar()
-	const avatarUpload = usePhotoUploads('AVATAR', 1, (photo) => setAvatar.mutateAsync(photo.id))
 	const [editing, setEditing] = useState(false)
 	const [menu, setMenu] = useState(false)
 
 	const data = shop.data
 	const tile = (width - 4) / 3
 	const place = data ? (data.location ? t('Ряд {0} · Контейнер {1}', data.location.rowCode, data.location.number) : (data.address ?? '')) : ''
-	const avatarBusy = avatarUpload.photos.length > 0 || setAvatar.isPending
+	// The banner on the shop profile [30] is the first photo of the place — added here and made the cover.
+	const addPhoto = useAddShopPhoto()
+	const setCover = useSetShopCover()
+	const coverUpload = usePhotoUploads('SHOP', 1, (photo) => addPhoto.mutateAsync(photo.id).then(() => setCover.mutateAsync(photo.id)))
+	const cover = data?.photos[0]
+	const coverBusy = coverUpload.photos.length > 0 || addPhoto.isPending || setCover.isPending
 
 	const newPart = () => {
 		usePartDraft.getState().reset()
@@ -59,7 +64,45 @@ export default function SellerBoxScreen() {
 
 	const header = (
 		<View style={{ paddingHorizontal: 16, paddingBottom: 14, gap: 12 }}>
-			<QueryErrorBanner error={shop.error ?? parts.error ?? setAvatar.error} onRetry={() => shop.refetch()} />
+			{/* As on LinkedIn: the banner buyers see behind the shop's profile, edge to edge — here the seller sees and changes it. */}
+			<Pressable
+				onPress={() => coverUpload.pick('library')}
+				disabled={coverBusy || !data}
+				style={{ marginHorizontal: -16, height: 150, overflow: 'hidden', backgroundColor: c.brandTint, alignItems: 'center', justifyContent: 'center' }}
+			>
+				{cover ? (
+					<Image source={{ uri: resolveUrl(cover.url) }} style={{ position: 'absolute', width: '100%', height: '100%' }} contentFit="cover" />
+				) : (
+					<View style={{ alignItems: 'center', gap: 4, paddingHorizontal: 24, paddingBottom: 36 }}>
+						<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Добавить обложку')}</Text>
+						<Text style={{ fontSize: fs.sm, textAlign: 'center', fontFamily: fontFamily(400), color: c.inkSecondary }}>{t('Фото витрины или контейнера — его видят покупатели в профиле магазина')}</Text>
+					</View>
+				)}
+				{cover ? (
+					<View style={{ position: 'absolute', right: 12, top: 12, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'center' }}>
+						<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(700), color: fixed.white }}>{t('Сменить обложку')}</Text>
+					</View>
+				) : null}
+				{coverBusy ? (
+					<View style={{ position: 'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' }}>
+						<ActivityIndicator color={fixed.white} />
+					</View>
+				) : null}
+			</Pressable>
+			{/* Без аватарки: у продавца только баннер выше — покупатели видят его и в карточках, и в чатах. */}
+			<View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 16 }}>
+				<View style={{ flex: 1, flexDirection: 'row', paddingBottom: 6 }}>
+					<Counter value={summary.data ? String(summary.data.all) : '—'} label={t('товаров')} />
+					<Counter value={data?.reviewsCount ? data.rating.toFixed(1) : '—'} label={t('рейтинг')} star={Boolean(data?.reviewsCount)} />
+					<Counter value={data ? String(data.reviewsCount) : '—'} label={t('отзывов')} />
+				</View>
+			</View>
+
+			{addPhoto.error ?? setCover.error ? (
+				<Text style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.danger }}>{(addPhoto.error ?? setCover.error)?.message}</Text>
+			) : null}
+
+			<QueryErrorBanner error={shop.error ?? parts.error} onRetry={() => shop.refetch()} />
 			<AccountStatusBanner
 				status={data?.status}
 				reason={data?.blockReason}
@@ -67,53 +110,6 @@ export default function SellerBoxScreen() {
 				offMarket={Boolean(data && !data.location)}
 				action={data && !data.location ? { label: t('Изменить профиль'), onPress: () => router.push('/seller-profile') } : { label: t('Выбрать другой контейнер'), onPress: () => router.push('/box-select') }}
 			/>
-
-			<View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-				{shop.isLoading ? (
-					<Skeleton width={80} height={80} radius={40} />
-				) : (
-				<Pressable onPress={() => avatarUpload.pick('library')} disabled={avatarBusy}>
-						<View
-							style={{
-								width: 80,
-								height: 80,
-								borderRadius: 40,
-								overflow: 'hidden',
-								backgroundColor: c.brandTint,
-								alignItems: 'center',
-								justifyContent: 'center',
-							}}
-						>
-							{data?.avatarUrl ? (
-								<Image source={{ uri: resolveUrl(data.avatarUrl) }} style={{ width: '100%', height: '100%' }} />
-							) : (
-								<Text style={{ fontSize: fs.hero, fontFamily: fontFamily(700), color: c.brandStrong }}>{data?.name.charAt(0).toUpperCase() ?? ' '}</Text>
-							)}
-							{avatarBusy ? (
-								<View
-									style={{
-										position: 'absolute',
-										left: 0,
-										top: 0,
-										right: 0,
-										bottom: 0,
-										backgroundColor: 'rgba(0,0,0,0.35)',
-										alignItems: 'center',
-										justifyContent: 'center',
-									}}
-								>
-									<ActivityIndicator color={fixed.white} />
-								</View>
-							) : null}
-						</View>
-	</Pressable>
-				)}
-				<View style={{ flex: 1, flexDirection: 'row' }}>
-					<Counter value={summary.data ? String(summary.data.all) : '—'} label={t('товаров')} />
-					<Counter value={data?.reviewsCount ? data.rating.toFixed(1) : '—'} label={t('рейтинг')} star={Boolean(data?.reviewsCount)} />
-					<Counter value={data ? String(data.reviewsCount) : '—'} label={t('отзывов')} />
-				</View>
-			</View>
 
 			{shop.isLoading ? (
 				<View style={{ gap: 8 }}>
@@ -172,7 +168,7 @@ export default function SellerBoxScreen() {
 				</Pressable>
 			</View>
 
-			<FlatList
+			<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
 				ref={list}
 				data={items}
 				keyExtractor={(item) => String(item.id)}
@@ -267,6 +263,7 @@ function PostTile({ part, size }: { part: MyPartItem; size: number }) {
 function MenuSheet({ onClose }: { onClose: () => void }) {
 	const c = useColors()
 	const stats = useShopStats('MONTH')
+	const shopOpen = useMyShop().data?.open
 	const settings = useSettings()
 	const updateSettings = useUpdateSettings()
 	const updateMe = useUpdateMe()
@@ -306,6 +303,7 @@ function MenuSheet({ onClose }: { onClose: () => void }) {
 
 			<View style={{ borderRadius: 16, backgroundColor: c.surface, overflow: 'hidden', marginTop: 6 }}>
 				<SettingsRow label={t('Мои марки')} value="›" valueColor={c.brandStrong} valueWeight={700} onPress={openBrands} />
+				<SettingsRow label={t('Время работы')} value={shopOpen ? `${formatSchedule(shopOpen)} ›` : '›'} valueColor={c.brandStrong} valueWeight={700} onPress={() => (onClose(), router.push('/shop-hours'))} />
 				<SettingsRow label={t('Язык')} height={60} right={<LanguageSwitch value={lang === 'ky' ? 'kg' : 'ru'} onChange={changeLang} />} />
 				<SettingsRow
 					label={t('Звук нового запроса')}
@@ -369,11 +367,11 @@ function EditSheet({ shop, onClose }: { shop: MyShop; onClose: () => void }) {
 				footer={<Button label={t('Сохранить')} disabled={name.trim().length < 2 || !phoneOk} loading={update.isPending} onPress={save} />}
 			>
 				<Label>{t('Название')}</Label>
-				<TextInput value={name} onChangeText={setName} maxLength={60} placeholder={t('Автодеталь Азамат')} placeholderTextColor={c.fillInk} style={field} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => phoneRef.current?.focus()} />
+				<TextInput inputAccessoryViewID={KEYBOARD_DONE} value={name} onChangeText={setName} maxLength={60} placeholder={t('Автодеталь Азамат')} placeholderTextColor={c.fillInk} style={field} returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => phoneRef.current?.focus()} />
 				<Label>{t('Телефон для покупателей')}</Label>
 				<View style={{ ...field, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 					<Text style={{ fontSize: fs.xl, fontFamily: fontFamily(700), color: c.muted }}>{COUNTRY_CODE}</Text>
-					<TextInput
+					<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 						ref={phoneRef}
 						value={phone}
 						onChangeText={(text) => setPhone(formatLocalPhone(text))}

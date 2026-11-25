@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Linking, Pressable, Text, View } from 'react-native'
 import { Image } from '@/components/ui/image'
 import { router, useLocalSearchParams } from 'expo-router'
@@ -8,6 +9,9 @@ import { fontFamily, fs, useColors } from '@/theme'
 import { useChat } from '@/api/chats'
 import { openShopRoute } from '@/lib/shop-place'
 import { t } from '@/i18n'
+import { goBack } from '@/lib/navigation'
+import { CourierSheet } from '@/components/courier-sheet'
+import { TruckIcon } from '@/components/video-v23'
 
 /** 07 — buyer's chat with a shop, or with a master (then `shop = null`, `master` and `serviceRequest`); call in one tap. */
 export default function BuyerChatScreen() {
@@ -23,6 +27,7 @@ export default function BuyerChatScreen() {
 	const avatar = resolveUrl(shop?.avatarUrl ?? master?.avatarUrl ?? null)
 	const name = shop?.name ?? master?.name ?? ' '
 	const presence = presenceLabel(chat?.online, chat?.lastSeenAt)
+	const [courier, setCourier] = useState(false)
 	const place = shop
 		? shop.location
 			? t('Кудайберген · {0} · конт. {1}', shop.location.rowLabel, shop.location.number)
@@ -34,6 +39,7 @@ export default function BuyerChatScreen() {
 			: ''
 
 	return (
+		<>
 		<ChatConversation
 			chatId={chatId}
 			draft={params.draft}
@@ -51,7 +57,7 @@ export default function BuyerChatScreen() {
 						borderBottomColor: c.hairline,
 					}}
 				>
-					<Pressable accessibilityRole="button" accessibilityLabel={t('Назад')} onPress={() => router.back()} hitSlop={10}>
+					<Pressable accessibilityRole="button" accessibilityLabel={t('Назад')} onPress={() => goBack()} hitSlop={10}>
 						<BackIcon color={c.ink} />
 					</Pressable>
 					{/* Avatar and name — the shop's profile (or the master's card). */}
@@ -89,6 +95,16 @@ export default function BuyerChatScreen() {
 						</Text>
 						</View>
 					</Pressable>
+					{/* Курьер Яндекс Go: от контейнера продавца до покупателя. */}
+					{shop ? (
+						<Pressable
+							onPress={() => setCourier(true)}
+							accessibilityLabel={t('Вызвать курьера')}
+							style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}
+						>
+							<TruckIcon size={22} color={c.ink} />
+						</Pressable>
+					) : null}
 					{phone ? (
 						<Pressable
 							onPress={() => Linking.openURL(`tel:${phone}`)}
@@ -137,5 +153,7 @@ export default function BuyerChatScreen() {
 				}
 			}}
 		/>
+		{courier && shop ? <CourierSheet shop={shop} onClose={() => setCourier(false)} /> : null}
+		</>
 	)
 }

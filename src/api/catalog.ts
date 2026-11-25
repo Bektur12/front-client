@@ -14,6 +14,8 @@ export interface PartFilters {
 	modelId?: number
 	year?: number
 	categoryId?: number
+	/** GET /market/markets; 0 — shops and centres off the markets. */
+	marketId?: number
 	sort?: 'PRICE_ASC' | 'PRICE_DESC' | 'NEWEST' | 'NEAREST'
 }
 
@@ -137,7 +139,7 @@ export function useSignedIn() {
 // ─── Videos from the market: the «Рынок» feed and «Видео с рынка» on the home screen ─────
 
 /** GET /catalog/videos — parts with a video, the ones fitting the car first, then the newest. */
-export function useVideoFeed(car: { carId?: number; brandId?: number; modelId?: number; year?: number } = {}, limit = 10) {
+export function useVideoFeed(car: { carId?: number; brandId?: number; modelId?: number; year?: number; marketId?: number } = {}, limit = 10) {
 	return useInfiniteQuery({
 		queryKey: videoKeys.feed({ ...car, limit }),
 		queryFn: ({ pageParam, signal }) =>
@@ -218,11 +220,11 @@ export function useDeletePartComment(partId: number) {
 }
 
 /** «Все магазины»: действующие магазины рынка и центры, поиск по названию. */
-export function useShopList(q: string) {
+export function useShopList(q: string, marketId: number | null = null) {
 	return useInfiniteQuery({
-		queryKey: shopKeys.list({ q: q.trim() }),
+		queryKey: shopKeys.list({ q: q.trim(), marketId }),
 		queryFn: ({ pageParam, signal }) =>
-			apiFetch<ShopCardPage>('/shops', { query: { q: q.trim() || undefined, cursor: pageParam }, signal }),
+			apiFetch<ShopCardPage>('/shops', { query: { q: q.trim() || undefined, marketId: marketId ?? undefined, cursor: pageParam }, signal }),
 		...cursorPaging,
 	})
 }

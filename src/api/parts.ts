@@ -70,8 +70,17 @@ export function useRestorePart() {
 	return usePartMutation((id: number) => apiFetch<PartDetail>(`/parts/${id}/restore`, { method: 'POST' }))
 }
 
+/** Only the box owner may delete (403 OWNER_ONLY for staff). The part's own cache goes — a refetch would 404. */
 export function useDeletePart() {
-	return usePartMutation((id: number) => apiFetch<void>(`/parts/${id}`, { method: 'DELETE' }))
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: (id: number) => apiFetch<void>(`/parts/${id}`, { method: 'DELETE' }),
+		onSuccess: (_, id) => {
+			queryClient.removeQueries({ queryKey: partKeys.myDetail(id) })
+			queryClient.invalidateQueries({ queryKey: ['parts'] })
+			queryClient.invalidateQueries({ queryKey: ['videos'] })
+		},
+	})
 }
 
 /** Camera mode «Номер детали» [25]: photo of the label → OEM number candidates. */

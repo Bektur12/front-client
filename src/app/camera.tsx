@@ -14,6 +14,7 @@ import { useRecognizeOem } from '@/api/parts'
 import { useAddShopPhoto } from '@/api/shop'
 import { MAX_PART_PHOTOS, usePartDraft } from '@/store/usePartDraft'
 import { t } from '@/i18n'
+import { goBack } from '@/lib/navigation'
 
 /**
  * 25 — camera, no mode tabs: `mode` 0 (default) — photos of the part being created [26]; 1 — OEM number recognition
@@ -82,7 +83,7 @@ export default function CameraScreen() {
 	}
 
 	const done = () => {
-		if (params.from === 'form' || mode === 2) router.back()
+		if (params.from === 'form' || mode === 2) goBack()
 		else router.replace('/new-part')
 	}
 
@@ -111,7 +112,7 @@ export default function CameraScreen() {
 				}}
 			>
 				<Pressable accessibilityRole="button" accessibilityLabel={t('Закрыть')}
-					onPress={() => router.back()}
+					onPress={() => goBack()}
 					style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}
 				>
 					<CloseIcon size={20} color={fixed.white} />
@@ -257,9 +258,10 @@ export default function CameraScreen() {
 			>
 				<Pressable accessibilityRole="button" accessibilityLabel={t('Выбрать из галереи')}
 					onPress={fromGallery}
-					style={{ width: 52, height: 52, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' }}
+					style={{ width: 72, height: 64, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', gap: 2 }}
 				>
 					<GalleryIcon size={24} color={fixed.white} />
+					<Text style={{ fontSize: fs.xxs, fontFamily: fontFamily(700), color: fixed.white }}>{t('Галерея')}</Text>
 				</Pressable>
 
 				<Pressable

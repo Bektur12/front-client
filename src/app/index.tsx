@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Keyboard, Linking, Pressable, Text, TextInput, View } from 'react-native'
 import { Image } from '@/components/ui/image'
-import { Redirect, router } from 'expo-router'
+import { Redirect, router, useLocalSearchParams } from 'expo-router'
 import { useVideoPlayer, VideoView } from 'expo-video'
 import { Button } from '@/components/ui'
 import { AUTH_FIELD_HEIGHT, AuthLayout } from '@/components/auth-layout'
@@ -12,6 +12,9 @@ import { API_URL } from '@/lib/env'
 import { useSendOtp } from '@/api/auth'
 import { homeHref, useSession } from '@/store/useSession'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { KgFlag } from '@/components/kg-flag'
+import { goBack } from '@/lib/navigation'
 
 const LANGS = [
 	{ value: 'ru', label: 'RU' },
@@ -38,10 +41,14 @@ export default function PhoneScreen() {
 	const hasMaster = useSession((s) => s.hasMaster)
 	const lang = useSession((s) => s.lang)
 	const setLang = useSession((s) => s.setLang)
+	const { login } = useLocalSearchParams<{ login?: string }>()
 	const [phone, setPhone] = useState('')
 	const sendOtp = useSendOtp()
 
 	if (signedIn) return <Redirect href={homeHref({ role, onboarded, hasShop, hasMaster })} />
+	// The app opens on the catalog, not on a sign-in wall (App Store 5.1.1(v)): this screen shows only when someone
+	// chose «Войти» (openSignIn adds login=1). Not «can go back» — inside the tabs that answer flickers.
+	if (login !== '1') return <Redirect href="/buyer" />
 
 	const submit = () => {
 		Keyboard.dismiss()
@@ -103,12 +110,12 @@ export default function PhoneScreen() {
 			}
 			header={
 				// The brand card: a pre-rendered 3D loop (the logo comes apart like a watch), the name over it
-				<View style={{ marginTop: 12, borderRadius: 28, overflow: 'hidden', aspectRatio: 1086 / 690, backgroundColor: fixed.brandCard }}>
+				// Fills the header block edge to edge: with only aspectRatio, a short block made the card narrower and it hugged the left side.
+				<View style={{ flex: 1, alignSelf: 'stretch', marginTop: 12, borderRadius: 28, overflow: 'hidden', backgroundColor: fixed.brandCard }}>
 					<Image source={require('../../assets/video/login-poster.jpg')} style={{ position: 'absolute', width: '100%', height: '100%' }} />
 					<VideoView player={logoLoop} nativeControls={false} contentFit="cover" style={{ position: 'absolute', width: '100%', height: '100%' }} />
-					<View style={{ position: 'absolute', left: 0, right: 0, bottom: 16, alignItems: 'center', gap: 2 }}>
+					<View style={{ position: 'absolute', left: 0, right: 0, bottom: 14, alignItems: 'center' }}>
 						<Text style={{ fontSize: fs.display, lineHeight: 34, fontFamily: fontFamily(800), letterSpacing: -0.5, color: fixed.white }}>KUDAIBERDI</Text>
-						<Text style={{ fontSize: fs.md, lineHeight: 21, fontFamily: fontFamily(500), color: 'rgba(255,255,255,0.85)' }}>{t('Авторынок запчастей в Бишкеке')}</Text>
 					</View>
 				</View>
 			}
@@ -127,9 +134,12 @@ export default function PhoneScreen() {
 						gap: 12,
 					}}
 				>
-					<Text style={{ fontSize: fs.xxl, fontFamily: fontFamily(700), color: c.ink }}>{COUNTRY_CODE}</Text>
+					<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+						<KgFlag width={28} />
+						<Text style={{ fontSize: fs.xxl, fontFamily: fontFamily(700), color: c.ink }}>{COUNTRY_CODE}</Text>
+					</View>
 					<View style={{ width: 1.5, height: 26, backgroundColor: c.border }} />
-					<TextInput
+					<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 						value={phone}
 						onChangeText={(text) => {
 							const next = formatLocalPhone(text)
@@ -152,12 +162,15 @@ export default function PhoneScreen() {
 				error ? (
 					<Text style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.danger }}>{error.message}</Text>
 				) : (
-					<Text style={{ fontSize: fs.md, fontFamily: fontFamily(400), color: c.muted }}>{t('Отправим SMS с кодом')}</Text>
+					<Text style={{ fontSize: fs.md, fontFamily: fontFamily(400), color: c.muted }}>{t('Отправим код в WhatsApp')}</Text>
 				)
 			}
 			footer={
 				<View style={{ gap: 12 }}>
 					<Button label={t('Получить код')} disabled={!isValidLocalPhone(phone)} loading={sendOtp.isPending} onPress={submit} />
+					<Pressable onPress={() => goBack('/buyer')} hitSlop={8} style={{ height: 44, alignItems: 'center', justifyContent: 'center' }}>
+						<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Не сейчас')}</Text>
+					</Pressable>
 					{/* Entering means accepting the rules (App Store 1.2: user content needs agreed terms). */}
 					<Text style={{ fontSize: fs.xs, lineHeight: 19, fontFamily: fontFamily(400), color: c.muted, textAlign: 'center' }}>
 						{t('Продолжая, вы принимаете')}{' '}

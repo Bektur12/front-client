@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, TextInput, View,
 import { askForPushAt } from '@/lib/push'
 import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import * as Location from 'expo-location'
 import { addressAt, currentCoords } from '@/lib/locate'
 import { BrandLogo, Button, Chip, QueryErrorBanner, ScreenHeader, SectionLabel, ServiceGrid, Skeleton, toast, Toggle } from '@/components/ui'
@@ -18,6 +18,8 @@ import type { CarOrigin, MyMaster } from '@/api/types'
 import { MARKET_POINT } from '@/data/service-types'
 import { ORIGINS } from '@/store/useServiceDraft'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { goBack, resetTo } from '@/lib/navigation'
 
 interface Form {
 	name: string
@@ -34,6 +36,10 @@ interface Form {
 }
 
 const RADII = [3, 5, 10, 20, 30]
+/** Tow truck and mobile master drive far (Bishkek–Osh road) — the radius goes up to the service's maxRadiusKm. */
+const LONG_RADII = [50, 100, 150, 200]
+/** The backend requires a phone: on a mountain road without internet the client can only call or send an SMS. */
+const PHONE_E164 = /^\+996\d{9}$/
 
 /** 38 «Мои услуги» — what the master does, brands, origins, where. The first master entry lands here. */
 export default function MasterProfileScreen() {
@@ -134,20 +140,26 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 	}
 
 	const selectedBrands = brands.filter((b) => form.brandIds.includes(b.id))
-	const ready = form.services.length > 0 && (form.allBrands || form.brandIds.length > 0) && Boolean(form.address.trim()) && Boolean(form.name.trim())
+	// The farthest radius among the chosen far-going services (tow truck, mobile master); otherwise 30 km.
+	const maxRadius = Math.max(30, ...(types ?? []).filter((type) => form.services.includes(type.code) && type.maxRadiusKm > 50).map((type) => type.maxRadiusKm))
+	const radii = [...RADII, ...LONG_RADII.filter((km) => km <= maxRadius)]
+	const radiusKm = Math.min(form.radiusKm, maxRadius)
+	const phoneOk = PHONE_E164.test(form.phone)
+	const ready = form.services.length > 0 && (form.allBrands || form.brandIds.length > 0) && Boolean(form.address.trim()) && Boolean(form.name.trim()) && phoneOk
 
 	return (
 		<View style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
-			<ScreenHeader title={t('Мои услуги')} />
+			{/* Ещё не мастер — «Назад» к выбору роли: иначе «/» снова открывает эту регистрацию и выйти нельзя. */}
+			<ScreenHeader title={t('Мои услуги')} onBack={initial ? undefined : () => resetTo('/role')} />
 
-			<ScrollView ref={scroll} contentContainerStyle={{ paddingTop: 8, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" ref={scroll} contentContainerStyle={{ paddingTop: 8, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 				<QueryErrorBanner error={error ?? save.error} />
 
 				{/* Not on the mockup: the name buyers see on offers [37] — asked once, on the first entry. */}
 				{!initial ? (
 					<>
 						<SectionLabel>{t('Название')}</SectionLabel>
-						<TextInput
+						<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 							value={form.name}
 							onChangeText={(name) => patch({ name: name.slice(0, 60) })}
 							placeholder={t('СТО «Ходовик» или Мастер Эрлан')}
@@ -227,7 +239,7 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 					<View style={{ gap: 8 }}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, height: 48, borderRadius: 12, backgroundColor: c.card, borderWidth: 2, borderColor: c.brand, paddingHorizontal: 14 }}>
 							<MapPinIcon size={20} color={c.brandStrong} />
-							<TextInput
+							<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 								value={form.address}
 								onChangeText={(address) => patch({ address })}
 								placeholder={t('Адрес: улица, дом, контейнер')}
@@ -242,8 +254,8 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 							</Text>
 						</Pressable>
 						<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-							{RADII.map((km) => (
-								<Chip key={km} label={t('{0} км', km)} height={36} radius={12} color={c.ink} selected={km === form.radiusKm} onPress={() => patch({ radiusKm: km })} />
+							{radii.map((km) => (
+								<Chip key={km} label={t('{0} км', km)} height={36} radius={12} color={c.ink} selected={km === radiusKm} onPress={() => patch({ radiusKm: km })} />
 							))}
 						</View>
 					</View>
@@ -255,7 +267,7 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 						<MapPinIcon size={20} color={c.brandStrong} />
 						<View style={{ flex: 1, gap: 2 }}>
 							<Text style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: c.ink }}>{form.address}</Text>
-							<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(400), color: c.muted }}>{t('Принимаю заявки в радиусе {0} км', form.radiusKm)}</Text>
+							<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(400), color: c.muted }}>{t('Принимаю заявки в радиусе {0} км', radiusKm)}</Text>
 						</View>
 					</Pressable>
 				)}
@@ -266,7 +278,10 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 				</View>
 
 				<SectionLabel>{t('Телефон для клиентов')}</SectionLabel>
-				<TextInput
+				<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(400), color: phoneOk || !form.phone ? c.muted : c.danger, marginTop: -4 }}>
+					{phoneOk || !form.phone ? t('Обязательно: с трассы, где нет интернета, вам позвонят или напишут SMS') : t('Номер в формате +996 555 123 456')}
+				</Text>
+				<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 					value={form.phone}
 					onChangeText={(phone) => patch({ phone: phone.replace(/[^\d+]/g, '').slice(0, 13) })}
 					keyboardType="phone-pad"
@@ -278,7 +293,7 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 				{initial ? <MasterMedia master={initial} /> : null}
 			</ScrollView>
 
-			<View style={{ paddingTop: 12, paddingHorizontal: 16, paddingBottom: 28 + insets.bottom, backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.hairline }}>
+			<View style={{ paddingTop: 12, paddingHorizontal: 16, paddingBottom: 28 + insets.bottom, backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.hairline }}>
 				<Button
 					label={t('Сохранить')}
 					height={56}
@@ -294,15 +309,16 @@ function MasterProfileForm({ initial, error }: { initial: MyMaster | null; error
 								lat: form.lat ?? MARKET_POINT.lat,
 								lng: form.lng ?? MARKET_POINT.lng,
 								brandIds: form.allBrands ? [] : form.brandIds,
-								phone: form.phone || undefined,
+								radiusKm,
+								phone: form.phone,
 							},
 							{
 								onSuccess: (master) =>
 									!first
-										? (toast(t('Профиль сохранён')), router.back())
+										? (toast(t('Профиль сохранён')), goBack())
 										: master.status === 'PENDING_VERIFICATION'
-											? router.replace('/under-review?kind=master')
-											: (toast(t('Профиль сохранён')), router.replace('/master'), askForPushAt('master')),
+											? resetTo('/under-review?kind=master')
+											: (toast(t('Профиль сохранён')), resetTo('/master'), askForPushAt('master')),
 							}
 						)
 					}

@@ -1,7 +1,7 @@
 // Voice notes in the v23 flow [04, 05, 12–14, 16–19]: the pill player from the design and
 // record → upload (POST /media/voices) → what the server understood (`reply` / `offer`).
 import { useEffect, useState } from 'react'
-import { Pressable, Text, View } from 'react-native'
+import { ActivityIndicator, Pressable, Text, View } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio'
 import { useVoiceRecorder } from '@/components/chat-media'
@@ -76,6 +76,24 @@ export function VoicePlayer({
 	const color = tone === 'green' ? c.success : c.brand
 	const bars = barHeights(voice.waveform, barsWidth)
 	const { speed, next: nextSpeed } = useVoiceSpeed()
+	// Tapped ▶ but the sound hasn't started yet (still downloading / buffering) — show a spinner, so the tap
+	// doesn't look ignored. Before, people tapped again and again and the note played only later.
+	const [waiting, setWaiting] = useState(false)
+	const loading = (waiting && !status.playing) || (status.playing && status.isBuffering)
+
+	useEffect(() => {
+		const sub = player.addListener('playbackStatusUpdate', (update) => {
+			if ((update.playing && !update.isBuffering) || update.didJustFinish) setWaiting(false)
+		})
+		return () => sub.remove()
+	}, [player])
+	// The first tap came before the file loaded: start it the moment it's ready.
+	useEffect(() => {
+		if (waiting && status.isLoaded && !status.playing) {
+			player.setPlaybackRate(speed, 'high')
+			player.play()
+		}
+	}, [waiting, status.isLoaded, status.playing, player, speed])
 
 	// 1× → 1.5× → 2×, pitch kept natural; the same speed for every note.
 	useEffect(() => {
@@ -83,8 +101,17 @@ export function VoicePlayer({
 	}, [player, speed])
 
 	const toggle = () => {
-		if (status.playing) player.pause()
-		else {
+		// A second tap while it's loading cancels — not another queued play.
+		if (waiting && !status.playing) {
+			setWaiting(false)
+			player.pause()
+			return
+		}
+		if (status.playing) {
+			setWaiting(false)
+			player.pause()
+		} else {
+			setWaiting(true)
 			if (finished || progress >= 0.99) player.seekTo(0)
 			// again here: before the audio has loaded, some platforms drop a rate set earlier
 			player.setPlaybackRate(speed, 'high')
@@ -103,6 +130,8 @@ export function VoicePlayer({
 	return (
 		<Pressable
 			onPress={toggle}
+			accessibilityRole="button"
+			accessibilityLabel={loading ? t('Загружается') : status.playing ? t('Пауза') : t('Слушать')}
 			style={{
 				height,
 				borderRadius: height / 2,
@@ -124,7 +153,7 @@ export function VoicePlayer({
 					justifyContent: 'center',
 				}}
 			>
-				{status.playing ? <PauseIcon /> : <PlayIcon />}
+				{loading ? <ActivityIndicator size="small" color={fixed.white} /> : status.playing ? <PauseIcon /> : <PlayIcon />}
 			</View>
 			<View style={{ flex: 1 }} onLayout={(event) => setBarsWidth(event.nativeEvent.layout.width)}>
 				{row(0.3)}

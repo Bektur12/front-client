@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FlatList, Pressable, Text, View } from 'react-native'
 import { askForPushAt } from '@/lib/push'
 import { Image } from '@/components/ui/image'
@@ -19,9 +19,15 @@ import { flattenPages } from '@/api/pagination'
 import { resolveUrl } from '@/lib/api'
 import { useMyRequests } from '@/api/requests'
 import { LoupeIcon } from '@/components/buyer-v23'
-import type { MasterFeedItem } from '@/api/types'
+import type { MasterFeedFilter, MasterFeedItem } from '@/api/types'
 import { t } from '@/i18n'
 import { useHiddenCards, useHiddenIds } from '@/store/useHiddenCards'
+
+const FEED_FILTERS: { value: MasterFeedFilter; label: string; empty: string }[] = [
+	{ value: 'NEW', label: t('Новые'), empty: t('Новых заявок пока нет') },
+	{ value: 'ANSWERED', label: t('Ответил'), empty: t('Здесь будут заявки, на которые вы ответили') },
+	{ value: 'EXPIRED', label: t('Истекли'), empty: t('Истёкших заявок нет') },
+]
 
 /** 18 «Заявки» — new requests and the ones already answered; reply by voice, «Не моё» or «Могу помочь». */
 export default function MasterRequestsScreen() {
@@ -37,13 +43,15 @@ export default function MasterRequestsScreen() {
 	const profile = useMyMaster()
 	const fresh = useMasterFeed('NEW')
 	const answered = useMasterFeed('ANSWERED')
+	const expired = useMasterFeed('EXPIRED')
+	const feeds = { NEW: fresh, ANSWERED: answered, EXPIRED: expired }
+	// «Новые / Ответил / Истекли» — one list at a time instead of new and answered mixed together.
+	const [filter, setFilter] = useState<MasterFeedFilter>('NEW')
+	const feed = feeds[filter]
 	const offer = useMasterOffer()
-	const pull = usePullRefresh(() => [fresh.refetch(), answered.refetch()])
+	const pull = usePullRefresh(() => [fresh.refetch(), answered.refetch(), expired.refetch()])
 	const hiddenIds = useHiddenIds('master-feed')
-	const items = useMemo(
-		() => [...flattenPages(fresh.data), ...flattenPages(answered.data)].filter((item) => !hiddenIds.includes(item.id)),
-		[fresh.data, answered.data, hiddenIds]
-	)
+	const items = flattenPages(feed.data).filter((item) => !hiddenIds.includes(item.id))
 	const [now, setNow] = useState(() => new Date())
 	// A master or СТО also buys parts — for a client's car [04]; their active part requests are here.
 	const partRequests = flattenPages(useMyRequests('ACTIVE').data)
@@ -118,7 +126,18 @@ export default function MasterRequestsScreen() {
 				</LinearGradient>
 			</Pressable>
 			{/* The master's own part requests — a separate, labelled block so they don't mix with clients' requests. */}
-			{partRequests.length ? <Text style={[sectionStyle, { marginTop: 8 }]}>{t('Мои запросы запчастей')}</Text> : null}
+			{partRequests.length ? (
+				<View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+					<Text style={[sectionStyle, { flex: 1 }]}>{t('Мои запросы запчастей')}</Text>
+					<Text onPress={() => router.push('/my-requests')} style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.brandStrong }}>
+						{t('Все')}
+					</Text>
+				</View>
+			) : (
+				<Text onPress={() => router.push('/my-requests')} style={{ marginTop: 4, fontSize: fs.md, fontFamily: fontFamily(700), color: c.brandStrong }}>
+					{t('Мои запросы запчастей')} ›
+				</Text>
+			)}
 			{partRequests.map((request) => (
 				<Pressable
 					key={request.id}
@@ -152,8 +171,24 @@ export default function MasterRequestsScreen() {
 				kind="master"
 				action={{ label: t('Изменить профиль'), onPress: () => router.push('/master-profile') }}
 			/>
-			<QueryErrorBanner error={fresh.error ?? answered.error ?? offer.error} onRetry={() => (fresh.refetch(), answered.refetch())} />
+			<QueryErrorBanner error={feed.error ?? offer.error} onRetry={() => feed.refetch()} />
 			<Text style={[sectionStyle, { marginTop: 8 }]}>{t('Заявки от клиентов')}</Text>
+			<View style={{ flexDirection: 'row', gap: 8 }}>
+				{FEED_FILTERS.map((option) => {
+					const selected = option.value === filter
+					const count = flattenPages(feeds[option.value].data).length
+					return (
+						<Pressable
+							key={option.value}
+							onPress={() => setFilter(option.value)}
+							style={{ flex: 1, height: 42, borderRadius: 12, backgroundColor: selected ? c.brand : c.card, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+						>
+							<Text numberOfLines={1} style={{ flexShrink: 1, fontSize: fs.base, fontFamily: fontFamily(700), color: selected ? fixed.white : c.ink }}>{option.label}</Text>
+							{count ? <Text style={{ fontSize: fs.sm, fontFamily: fontFamily(700), color: selected ? fixed.white : c.muted }}>{count}</Text> : null}
+						</Pressable>
+					)
+				})}
+			</View>
 		</View>
 	)
 
@@ -166,9 +201,9 @@ export default function MasterRequestsScreen() {
 				ListHeaderComponent={header}
 				contentContainerStyle={{ flexGrow: 1, gap: 10, paddingBottom: 16 }}
 				ListEmptyComponent={
-					fresh.isSuccess && answered.isSuccess ? (
-						<EmptyState title={t('Пока заявок нет')} icon={RequestsIcon} />
-					) : fresh.isLoading ? (
+					feed.isSuccess ? (
+						<EmptyState title={FEED_FILTERS.find((option) => option.value === filter)?.empty ?? ''} icon={RequestsIcon} />
+					) : feed.isLoading ? (
 						<SkeletonRepeat count={4} gap={10}>
 							<SkeletonRequestCard actions={2} />
 						</SkeletonRepeat>
@@ -176,8 +211,7 @@ export default function MasterRequestsScreen() {
 				}
 				showsVerticalScrollIndicator={false}
 				onEndReached={() => {
-					if (fresh.hasNextPage && !fresh.isFetchingNextPage) fresh.fetchNextPage()
-					else if (answered.hasNextPage && !answered.isFetchingNextPage) answered.fetchNextPage()
+					if (feed.hasNextPage && !feed.isFetchingNextPage) feed.fetchNextPage()
 				}}
 				onRefresh={pull.onRefresh}
 				refreshing={pull.refreshing}
@@ -297,14 +331,14 @@ export function RequestCard({
 					</Pressable>
 					<View style={{ flexDirection: 'row', gap: 8 }}>
 						<Pressable onPress={onSkip} style={{ flex: 1, height: 50, borderRadius: 14, backgroundColor: c.fill, alignItems: 'center', justifyContent: 'center' }}>
-							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Не моё')}</Text>
+							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Не моё')}</Text>
 						</Pressable>
 						<Pressable
 							onPress={onHelp}
 							style={{ flex: 1, height: 50, borderRadius: 14, backgroundColor: c.successSoft, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
 						>
 							<CheckMark size={20} color={c.success} />
-							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.success }}>{t('Могу помочь')}</Text>
+							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: c.success }}>{t('Могу помочь')}</Text>
 						</Pressable>
 					</View>
 				</>

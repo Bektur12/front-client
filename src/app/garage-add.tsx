@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
-import { router, useLocalSearchParams } from 'expo-router'
+import { Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { useLocalSearchParams } from 'expo-router'
 import { BottomSheet, BrandLogo, Button, QueryErrorBanner, ScreenHeader, toast } from '@/components/ui'
 import { SearchIcon } from '@/components/icons'
 import { fontFamily, fs, sectionTitle, useColors } from '@/theme'
@@ -11,6 +11,8 @@ import { useClientCar } from '@/store/useClientCar'
 import { SelectField, SelectSheet } from '@/components/select-sheet'
 import { FUELS, ORIGINS } from '@/store/useServiceDraft'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { goBack } from '@/lib/navigation'
 
 const VOLUMES = [1.3, 1.5, 1.8, 2.0, 2.4, 2.5, 3.0, 3.5, 4.0]
 
@@ -60,6 +62,7 @@ export default function GarageAddScreen() {
 	const model = models.data?.find((m) => m.id === modelId)
 
 	const pickBrand = (next: Brand) => {
+		Keyboard.dismiss()
 		setBrand(next)
 		setModelId(null)
 		setYear(null)
@@ -91,7 +94,7 @@ export default function GarageAddScreen() {
 		<View style={{ flex: 1, backgroundColor: c.surface }}>
 			<ScreenHeader inset title={once ? t('Другая машина') : t('Добавить машину')} />
 
-			<ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 14 }} showsVerticalScrollIndicator={false}>
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 14 }} showsVerticalScrollIndicator={false}>
 				<View
 					style={{
 						height: 52,
@@ -106,7 +109,7 @@ export default function GarageAddScreen() {
 					}}
 				>
 					<SearchIcon size={20} color={c.muted} strokeWidth={2.4} />
-					<TextInput
+					<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 						value={q}
 						onChangeText={setQ}
 						placeholder={t('Марка: Toyota, мерс, бэха…')}
@@ -197,7 +200,7 @@ export default function GarageAddScreen() {
 								onPress={() => {
 									if (once) {
 										if (brand && model && year) useClientCar.getState().set({ brand, model, year })
-										router.back()
+										goBack()
 										return
 									}
 									return modelId &&
@@ -216,7 +219,7 @@ export default function GarageAddScreen() {
 											onSuccess: (car) => {
 												if (passport.select === '1') useClientCar.getState().select(car.id)
 												toast(t('Машина добавлена'))
-												router.back()
+												goBack()
 											},
 										}
 									)

@@ -4,7 +4,8 @@ import { router, useScrollToTop } from 'expo-router'
 import { askForPushAt } from '@/lib/push'
 import { usePullRefresh } from '@/lib/use-pull-refresh'
 import { BrandLogo, EmptyState, QueryErrorBanner, Screen, SkeletonRepeat, SkeletonRequestCard, undoToast } from '@/components/ui'
-import { RequestsIcon } from '@/components/icons'
+import { CameraIcon, RequestsIcon } from '@/components/icons'
+import { MarketVideos } from '@/components/market-videos'
 import { VoicePlayer } from '@/components/voice'
 import { MediaGallery, MediaStrip, photosAsMedia } from '@/components/media-strip'
 import { isPlaceholderText } from '@/components/request-text'
@@ -42,6 +43,9 @@ export default function SellerRequestsScreen() {
 
 	const hiddenIds = useHiddenIds('incoming')
 	const items = [...flattenPages(fresh.data), ...flattenPages(answered.data)].filter((item) => !hiddenIds.includes(item.id))
+	// Видео других продавцов и «Снять своё»: есть новые запросы — под ними (сначала ответить), нет — сверху.
+	const hasNew = flattenPages(fresh.data).some((item) => !hiddenIds.includes(item.id))
+	const videos = <SellerVideos />
 
 	return (
 		<Screen padding={0}>
@@ -87,11 +91,47 @@ export default function SellerRequestsScreen() {
 						{orders.map((order) => (
 							<DeliveryCard key={order.id} order={order} />
 						))}
+						{hasNew ? null : videos}
 					</View>
 				}
+				ListFooterComponent={hasNew ? <View style={{ paddingTop: 12 }}>{videos}</View> : undefined}
 				renderItem={({ item }) => <RequestCard request={item} />}
 			/>
 		</Screen>
+	)
+}
+
+/** «Видео с рынка» — ролики других продавцов; первой плиткой «＋ Снять», как «Ваша история» в Instagram. */
+function SellerVideos() {
+	return <MarketVideos title={t('Видео с рынка')} leading={<ShootTile />} />
+}
+
+/** Плитка размером с ролик: пунктир, камера, «Снять» — без текста, который надо читать. */
+function ShootTile() {
+	const c = useColors()
+	return (
+		<Pressable
+			onPress={() => router.push('/seller-video')}
+			accessibilityRole="button"
+			accessibilityLabel={t('Снять видео')}
+			style={{
+				width: 120,
+				height: 250,
+				borderRadius: 18,
+				borderWidth: 2,
+				borderStyle: 'dashed',
+				borderColor: c.dashedBrand,
+				backgroundColor: c.brandTint,
+				alignItems: 'center',
+				justifyContent: 'center',
+				gap: 10,
+			}}
+		>
+			<View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}>
+				<CameraIcon size={26} color={fixed.white} />
+			</View>
+			<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(800), color: c.brandStrong }}>{t('Снять')}</Text>
+		</Pressable>
 	)
 }
 

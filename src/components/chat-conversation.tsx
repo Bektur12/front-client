@@ -18,10 +18,12 @@ import { newIdempotencyKey, resolveUrl } from '@/lib/api'
 import { formatAgo, formatClock, formatPrice, formatWhenAt } from '@/lib/format'
 import { useRealtime, useChatChannel } from '@/lib/realtime'
 import { flattenPages } from '@/api/pagination'
+import { useMe } from '@/api/me'
 import { type ChatSide, useChat, useChatMessages, useMarkRead, useQuickReplies, useSendMedia, useSendMessage } from '@/api/chats'
 import type { ChatMessage, QuickReply } from '@/api/types'
 import { ComplaintSheet, type ComplaintTarget } from '@/components/complaint-sheet'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
 
 /** Labels for codes the server sends without text. */
 export const SYSTEM_TEXT: Record<string, string> = {
@@ -87,6 +89,15 @@ export function ChatConversation({ chatId, mySide, header, pinned, onAction, dra
 	const lastRead = useRef(0)
 
 	const messages = flattenPages(history.data)
+	const me = useMe().data
+	const room = chat.data
+	// Faces on voice notes, as in WhatsApp: the buyer sees the shop's (or master's) logo, the seller — the buyer.
+	const theirs: Face = mySide === 'BUYER'
+		? { url: room?.shop?.avatarUrl ?? room?.master?.avatarUrl ?? null, name: room?.shop?.name ?? room?.master?.name ?? '' }
+		: { url: room?.buyer.avatarUrl ?? null, name: room?.buyer.name ?? t('Покупатель') }
+	const mineFace: Face = mySide === 'BUYER'
+		? { url: me?.avatarUrl ?? null, name: me?.name ?? '' }
+		: { url: room?.shop?.avatarUrl ?? room?.master?.avatarUrl ?? null, name: room?.shop?.name ?? room?.master?.name ?? '' }
 
 	// One chat per pair: a REPLY says which request / service request it answers [08, 37].
 	const aboutLabel = (message: ChatMessage) => {
@@ -192,6 +203,7 @@ export function ChatConversation({ chatId, mySide, header, pinned, onAction, dra
 					<Message
 						message={item}
 						mine={item.side === mySide}
+						face={item.side === mySide ? mineFace : theirs}
 						shopSide={mySide === 'SHOP'}
 						// Every own message carries ✓ / ✓✓; the newest one also says it in words.
 						status={
@@ -278,7 +290,7 @@ export function ChatConversation({ chatId, mySide, header, pinned, onAction, dra
 				{voice.recording ? (
 					<RecordingBar seconds={voice.seconds} onCancel={voice.cancel} />
 				) : (
-					<TextInput
+					<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 						value={text}
 						editable={canWrite}
 						onChangeText={(value) => {
@@ -332,6 +344,20 @@ export function ChatConversation({ chatId, mySide, header, pinned, onAction, dra
 	)
 }
 
+type Face = { url: string | null; name: string }
+
+/** A round photo, or the first letter of the name on the brand tint when there is none. */
+export function Avatar({ url, name, size = 40 }: { url: string | null; name: string; size?: number }) {
+	const c = useColors()
+	const src = resolveUrl(url)
+	if (src) return <Image source={{ uri: src }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c.surface }} />
+	return (
+		<View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: c.brandTint, alignItems: 'center', justifyContent: 'center' }}>
+			<Text style={{ fontSize: size * 0.42, fontFamily: fontFamily(700), color: c.brandStrong }}>{(name.trim() || '?').slice(0, 1).toUpperCase()}</Text>
+		</View>
+	)
+}
+
 function Message({
 	message,
 	mine,
@@ -341,7 +367,10 @@ function Message({
 	about,
 	shopSide,
 	last,
+	face,
 }: {
+	/** Whose voice it is — the photo (or first letter) on a voice note. */
+	face?: Face
 	/** The newest own message — «Прочитано» / «Доставлено» in words next to the ticks. */
 	last?: boolean
 	message: ChatMessage
@@ -398,7 +427,7 @@ function Message({
 	}
 
 	const payload = (message.payload ?? {}) as Record<string, unknown>
-	const price = typeof payload.price === 'number' ? formatPrice(payload.price) : null
+	const price = typeof payload.price === 'number' ? formatPrice(payload.price) : payload.priceNegotiable === true ? t('Договорная') : null
 	// A master's «Могу помочь» [37]: `{offerId, priceFrom, availableAt}`.
 	const offerPrice = typeof payload.priceFrom === 'number' ? t('от {0}', formatPrice(payload.priceFrom)) : null
 	const offerAt = typeof payload.availableAt === 'string' ? formatWhenAt(payload.availableAt) : null
@@ -410,11 +439,24 @@ function Message({
 	// Voice notes — mine and the other side's — the pill player from the v23 mockup [07], as in requests.
 	if (message.type === 'VOICE' && message.mediaUrl) {
 		return (
-			<View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', width: 230, gap: 3, opacity: status === 'sending' ? 0.7 : 1 }}>
-				<VoicePlayer
-					voice={{ url: message.mediaUrl, durationSec: message.durationSeconds ?? 0, waveform: message.waveform ?? [] }}
-					background={c.card}
-				/>
+			<View style={{ alignSelf: mine ? 'flex-end' : 'flex-start', width: 284, gap: 3, opacity: status === 'sending' ? 0.7 : 1 }}>
+				{/* As in WhatsApp: the speaker's face with a mic badge next to the player — theirs on the left, mine on the right. */}
+				<View style={{ flexDirection: mine ? 'row-reverse' : 'row', alignItems: 'center', gap: 8 }}>
+					{face ? (
+						<View>
+							<Avatar url={face.url} name={face.name} size={44} />
+							<View style={{ position: 'absolute', right: -2, bottom: -2, width: 20, height: 20, borderRadius: 10, backgroundColor: c.brand, borderWidth: 2, borderColor: c.surface, alignItems: 'center', justifyContent: 'center' }}>
+								<MicV23Icon size={10} color={fixed.white} />
+							</View>
+						</View>
+					) : null}
+					<View style={{ flex: 1 }}>
+						<VoicePlayer
+							voice={{ url: message.mediaUrl, durationSec: message.durationSeconds ?? 0, waveform: message.waveform ?? [] }}
+							background={c.card}
+						/>
+					</View>
+				</View>
 				<Text style={{ fontSize: fs.xxs, fontFamily: fontFamily(400), color: c.fillInk, alignSelf: mine ? 'flex-end' : 'flex-start' }}>
 					{formatClock(message.createdAt)}
 				</Text>
@@ -545,6 +587,7 @@ function replyText(payload: Record<string, unknown>, text: string | null | undef
 	let line = condition ? `${head}, ${CONDITION_WORD[condition] ?? ''}` : head
 	if (tags.length) line += `. ${tags.join(', ')}`
 	if (typeof payload.price === 'number') line += ` — ${formatPrice(payload.price)}`
+	else if (payload.priceNegotiable === true) line += ` — ${t('цена договорная')}`
 	return text ? `${line}\n${text}` : line
 }
 

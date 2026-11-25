@@ -19,6 +19,7 @@ import {
 } from '@/api/delivery'
 import type { DeliveryOrder } from '@/api/types'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
 
 /**
  * One delivery order. The buyer sees «Где посылка» (status card, timeline, track number); the shop — «Заказ с
@@ -200,7 +201,7 @@ function BuyerSide({ order, bottom }: { order: DeliveryOrder; bottom: number }) 
 							onPress={() => router.push({ pathname: '/chat', params: { chatId: String(order.chatId) } })}
 							style={{ flex: 1, height: 52, paddingHorizontal: 10, borderRadius: 14, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}
 						>
-							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Чат с продавцом')}</Text>
+							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Чат с продавцом')}</Text>
 						</Pressable>
 					) : null}
 					{order.courierWhatsappUrl ? (
@@ -220,7 +221,7 @@ function BuyerSide({ order, bottom }: { order: DeliveryOrder; bottom: number }) 
 							}}
 						>
 							<WhatsAppIcon size={22} color={fixed.white} />
-							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Курьер Ылдам')}</Text>
+							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Курьер Ылдам')}</Text>
 						</Pressable>
 					) : null}
 				</View>
@@ -310,7 +311,7 @@ function ShopSide({ order, bottom }: { order: DeliveryOrder; bottom: number }) {
 								}}
 							>
 								<Text style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.muted }}>{t('Вес, кг')}</Text>
-								<TextInput
+								<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 									value={weight}
 									onChangeText={setWeight}
 									editable={!packed}

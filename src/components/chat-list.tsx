@@ -13,6 +13,7 @@ import { type ChatListAs, useChats } from '@/api/chats'
 import type { ChatListItem } from '@/api/types'
 import { QUICK_TEXT, SYSTEM_TEXT } from './chat-conversation'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
 
 /**
  * 16 «Чаты» — the buyer's chats or the box's chats. Rows are kept live by the CHAT event.
@@ -53,7 +54,7 @@ export function ChatList({ as, also }: { as: ChatListAs; also?: ChatListAs }) {
 				<View style={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }}>
 					<View style={{ height: 44, borderRadius: 12, backgroundColor: c.card, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12 }}>
 						<SearchIcon size={20} color={c.muted} strokeWidth={2.4} />
-						<TextInput
+						<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 							value={q}
 							onChangeText={setQ}
 							placeholder={t('Поиск по чатам')}
@@ -83,7 +84,7 @@ export function ChatList({ as, also }: { as: ChatListAs; also?: ChatListAs }) {
 				style={{ marginHorizontal: 16, marginBottom: 12 }}
 			/>
 
-			<FlatList
+			<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag"
 				ref={list}
 				data={shown}
 				keyboardShouldPersistTaps="handled"

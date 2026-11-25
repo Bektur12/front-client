@@ -10,7 +10,7 @@ import { useVideoViewer } from '@/store/useVideoViewer'
 import { MarketVideos } from '@/components/market-videos'
 import { RecentlyViewed } from '@/components/recently-viewed'
 import { resolveUrl } from '@/lib/api'
-import { countLabel, formatPrice, plural } from '@/lib/format'
+import { countLabel, formatPartPrice, plural } from '@/lib/format'
 import { useSearchParts, useSignedIn } from '@/api/catalog'
 import { useCategories } from '@/api/directory'
 import { useCars } from '@/api/garage'
@@ -19,7 +19,10 @@ import { type CatalogSort, toPartFilters, useCatalogFilters } from '@/store/useC
 import { useSession } from '@/store/useSession'
 import { useRecentSearches } from '@/store/useRecentSearches'
 import { briefPlace } from '@/lib/shop-place'
+import { MarketChips, MarketFilterBanner } from '@/components/market-chips'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { requireSignIn } from '@/components/sign-in-prompt'
 
 const SORTS: { value: CatalogSort; label: string }[] = [
 	{ value: 'PRICE_ASC', label: t('Дешевле') },
@@ -32,7 +35,8 @@ const SORTS: { value: CatalogSort; label: string }[] = [
  * infinite grid. With a car — fitting parts first; without one — all parts. A master has no car of their own:
  * «Выберите марку» (the client's), until then all parts are shown.
  */
-export function CatalogScreen() {
+/** `floatingRoom` — место под «＋» над меню покупателя: полоса «Не нашли?» и низ списка поднимаются над ним. */
+export function CatalogScreen({ floatingRoom = 0 }: { floatingRoom?: number } = {}) {
 	const c = useColors()
 	// Tapping the active tab again scrolls back to the top, as in every app.
 	const list = useRef<FlatList<Row>>(null)
@@ -40,7 +44,7 @@ export function CatalogScreen() {
 	const insets = useSafeAreaInsets()
 	const signedIn = useSignedIn()
 	const f = useCatalogFilters()
-	const cars = useCars()
+	const cars = useCars(signedIn)
 	const categories = useCategories()
 	const [text, setText] = useState(f.q)
 	const [focused, setFocused] = useState(false)
@@ -105,7 +109,7 @@ export function CatalogScreen() {
 				}}
 			>
 				<SearchIcon size={20} color={c.muted} strokeWidth={2.4} />
-				<TextInput
+				<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 					value={text}
 					onChangeText={setText}
 					placeholder={t('Стойки, колодки, номер детали…')}
@@ -207,6 +211,9 @@ export function CatalogScreen() {
 				</Pressable>
 			</ScrollView>
 
+			<MarketChips value={f.marketId} onChange={f.setMarket} />
+			<MarketFilterBanner marketId={f.marketId} />
+
 			<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
 				{[{ id: null, name: t('Все') }, ...(categories.data ?? [])].map((category) => {
 					const active = f.categoryId === category.id
@@ -278,12 +285,12 @@ export function CatalogScreen() {
 
 	return (
 		<View style={{ flex: 1, backgroundColor: c.surface }}>
-			<FlatList
+			<FlatList automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
 				ref={list}
 				data={rows}
 				keyExtractor={(row) => (row.kind === 'others' ? 'others' : row.parts.map((part) => part.id).join('-'))}
 				ListHeaderComponent={header}
-				contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 16, paddingBottom: 90, gap: 20 }}
+				contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 16, paddingBottom: 90 + floatingRoom, gap: 20 }}
 				showsVerticalScrollIndicator={false}
 				onEndReached={() => search.hasNextPage && !search.isFetchingNextPage && search.fetchNextPage()}
 				renderItem={({ item: row }) =>
@@ -321,6 +328,7 @@ export function CatalogScreen() {
 							action={{
 								label: t('Спросить у продавцов'),
 								onPress: () =>
+									requireSignIn() &&
 									router.push({
 										pathname: '/search-part',
 										params: { ...(f.q.trim() ? { text: f.q.trim() } : {}), ...(carId ? { carId: String(carId) } : {}) },
@@ -335,6 +343,7 @@ export function CatalogScreen() {
 
 			<Pressable
 				onPress={() =>
+					requireSignIn() &&
 					router.push({
 						pathname: '/search-part',
 						params: { text: f.q.trim() || undefined, carId: carId ? String(carId) : undefined },
@@ -344,10 +353,11 @@ export function CatalogScreen() {
 					position: 'absolute',
 					left: 16,
 					right: 16,
-					bottom: 12,
+					bottom: 12 + floatingRoom,
 					height: 52,
 					borderRadius: 14,
-					backgroundColor: c.ink,
+					// dark pill in both themes: `ink` is near-white in the dark theme, and the white label vanished on it
+					backgroundColor: c.inverse,
 					paddingHorizontal: 16,
 					flexDirection: 'row',
 					alignItems: 'center',
@@ -372,7 +382,7 @@ type Row = { kind: 'parts'; parts: PartCard[] } | { kind: 'others' }
 export function PartTile({ part }: { part: PartCard }) {
 	return (
 		<ProductCard
-			price={formatPrice(part.price)}
+			price={formatPartPrice(part.price)}
 			title={part.title}
 			fits={part.fits === true}
 			location={briefPlace(part.shop)}

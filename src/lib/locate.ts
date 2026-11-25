@@ -15,14 +15,19 @@ function withTimeout<T>(promise: Promise<T>, ms: number) {
  * within 6 s, else a rough Lowest one. Ask for the permission before calling.
  */
 export async function currentCoords(): Promise<Location.LocationObjectCoords> {
+	return (await currentPosition()).coords
+}
+
+/** То же с временем фикса (timestamp, мс): последняя известная точка может быть несколько минут давности. */
+export async function currentPosition(): Promise<Location.LocationObject> {
 	const last = await Location.getLastKnownPositionAsync({
 		maxAge: LAST_KNOWN_MAX_AGE_MS,
 		requiredAccuracy: LAST_KNOWN_ACCURACY_M,
 	}).catch(() => null)
-	if (last) return last.coords
+	if (last) return last
 	const fresh = await withTimeout(Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }), FRESH_TIMEOUT_MS)
-	if (fresh) return fresh.coords
-	return (await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest })).coords
+	if (fresh) return fresh
+	return Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Lowest })
 }
 
 /**

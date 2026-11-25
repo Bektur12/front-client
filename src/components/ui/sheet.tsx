@@ -51,7 +51,7 @@ export function BottomSheet({ onClose, header, footer, children, maxHeight = 0.7
 					maxHeight: height * maxHeight,
 					borderTopLeftRadius: 24,
 					borderTopRightRadius: 24,
-					backgroundColor: c.card,
+					backgroundColor: c.surface,
 					shadowColor: fixed.shadow,
 					shadowOpacity: 0.14,
 					shadowOffset: { width: 0, height: -6 },

@@ -63,6 +63,10 @@ async function clearSession() {
 	useRecentSearches.getState().clear()
 }
 
+/** How long «Выйти» waits for the server before leaving anyway. */
+const SIGN_OUT_WAIT_MS = 1200
+let signingOut = false
+
 function goToStart() {
 	try {
 		router.replace('/')
@@ -138,15 +142,24 @@ export const useSession = create<SessionState>((set, get) => ({
 	},
 
 	signOut: async () => {
-		// Stop this device's pushes before the session (and its token) is gone.
-		await (await import('@/lib/push')).unregisterDevice()
-		const refreshToken = getRefreshToken()
-		if (refreshToken) {
-			await apiFetch('/auth/logout', { method: 'POST', body: { refreshToken } }).catch(() => {})
+		// «Выйти» answers at once: a second tap while the server is slow does nothing.
+		if (signingOut) return
+		signingOut = true
+		try {
+			// Stop this device's pushes and end the session on the server — in parallel, sent while the token is
+			// still here. On a slow network we don't wait them out: the requests already sent finish on their own.
+			const refreshToken = getRefreshToken()
+			const cleanup = Promise.allSettled([
+				import('@/lib/push').then((push) => push.unregisterDevice()),
+				refreshToken ? apiFetch('/auth/logout', { method: 'POST', body: { refreshToken } }) : null,
+			])
+			await Promise.race([cleanup, new Promise((resolve) => setTimeout(resolve, SIGN_OUT_WAIT_MS))])
+			await clearSession()
+			set({ status: 'guest', userId: null, role: null, onboarded: false, hasShop: false, hasMaster: false })
+			goToStart()
+		} finally {
+			signingOut = false
 		}
-		await clearSession()
-		set({ status: 'guest', userId: null, role: null, onboarded: false, hasShop: false, hasMaster: false })
-		goToStart()
 	},
 
 	expire: () => {

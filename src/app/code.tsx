@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Keyboard, Pressable, Text, TextInput, View, type TextInputInstance } from 'react-native'
-import { router, useLocalSearchParams } from 'expo-router'
+import { useLocalSearchParams } from 'expo-router'
 import { ChevronLeftIcon } from '@/components/icons'
 import { AUTH_FIELD_HEIGHT, AuthLayout } from '@/components/auth-layout'
 import { fontFamily, fs, useColors } from '@/theme'
@@ -9,6 +9,8 @@ import { formatE164 } from '@/lib/phone'
 import { useSendOtp, useVerifyOtp } from '@/api/auth'
 import { homeHref } from '@/store/useSession'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { goBack, resetTo } from '@/lib/navigation'
 
 const CODE_LENGTH = 4
 
@@ -40,7 +42,7 @@ export default function CodeScreen() {
 		verify.mutate(
 			{ phone, code },
 			{
-				onSuccess: ({ user }) => router.replace(homeHref(user)),
+				onSuccess: ({ user }) => resetTo(homeHref(user)),
 				onError: () => setCode(''),
 			}
 		)
@@ -70,7 +72,7 @@ export default function CodeScreen() {
 		<AuthLayout
 			topBar={
 				<Pressable accessibilityRole="button" accessibilityLabel={t('Назад')}
-					onPress={() => router.back()}
+					onPress={() => goBack()}
 					style={{
 						width: 48,
 						height: 48,
@@ -84,7 +86,7 @@ export default function CodeScreen() {
 				</Pressable>
 			}
 			header={
-				<Text style={{ fontSize: fs.hero, lineHeight: 40, fontFamily: fontFamily(800), letterSpacing: -0.64, color: c.ink }}>{t('Код из SMS')}</Text>
+				<Text style={{ fontSize: fs.hero, lineHeight: 40, fontFamily: fontFamily(800), letterSpacing: -0.64, color: c.ink }}>{t('Код из WhatsApp')}</Text>
 			}
 			label={t('Отправили на {0}', formatE164(phone))}
 			field={
@@ -116,7 +118,7 @@ export default function CodeScreen() {
 							)
 						})}
 					</Pressable>
-					<TextInput
+					<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 						ref={inputRef}
 						value={code}
 						onChangeText={(text) => {

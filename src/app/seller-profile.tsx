@@ -1,16 +1,17 @@
-import { useState } from 'react'
-import { Linking, Pressable, ScrollView, Share, Text, View, useWindowDimensions } from 'react-native'
+import { useEffect, useState } from 'react'
+import { Linking, Pressable, ScrollView, Share, Text, TextInput, View, useWindowDimensions } from 'react-native'
 import { onNearEnd } from '@/lib/scroll'
 import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { LocationCard, QueryErrorBanner, Skeleton, SkeletonProductGrid, SkeletonRepeat, MoreButton } from '@/components/ui'
 import { BrandLogo } from '@/components/ui/brand'
-import { ChatIcon, ChevronLeftIcon, HeartIcon, MapPinIcon, PhoneIcon, ShareIcon, WhatsAppIcon } from '@/components/icons'
+import { ChatIcon, ChevronLeftIcon, HeartIcon, MapPinIcon, PhoneIcon, SearchIcon, ShareIcon, WhatsAppIcon } from '@/components/icons'
 import { openWhatsApp } from '@/lib/whatsapp'
 import { fixed, fontFamily, fs, sectionTitle, useColors } from '@/theme'
 import { resolveUrl } from '@/lib/api'
 import { formatDay, formatSide, plural } from '@/lib/format'
+import { formatOpenNow, formatSchedule } from '@/lib/hours'
 import { flattenPages } from '@/api/pagination'
 import { usePublicShop, useShop, useShopParts, useShopReviews, useSignedIn, useToggleShopFavorite } from '@/api/catalog'
 import { useOpenChat } from '@/api/chats'
@@ -18,12 +19,16 @@ import { ComplainLink, ComplaintSheet, type ComplaintTarget } from '@/components
 import { open2gis, openShopRoute } from '@/lib/shop-place'
 import { PartTile } from '@/components/catalog-screen'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { openSignIn } from '@/components/sign-in-prompt'
+import { goBack } from '@/lib/navigation'
 
 /** Filled rating stars — gold, the empty ones stay grey. */
 const STAR = fixed.star
 
 type Tab = 'parts' | 'reviews'
-const VISIBLE_BRANDS = 4
+/** More parts than this — the profile gets «Поиск по товарам магазина». */
+const SEARCH_FROM = 8
 
 /** 30 — shop profile for buyers. `id`, or `publicId` from a share link /s/{publicId}. */
 export default function SellerProfileForBuyerScreen() {
@@ -41,8 +46,15 @@ export default function SellerProfileForBuyerScreen() {
 
 	const [tab, setTab] = useState<Tab>('parts')
 	const [complaint, setComplaint] = useState<ComplaintTarget | null>(null)
-	const [showAllBrands, setShowAllBrands] = useState(false)
-	const parts = useShopParts(shopId)
+	const [categoryId, setCategoryId] = useState<number | null>(null)
+	// Search within the shop — the request goes out once typing pauses, not on every letter.
+	const [typed, setTyped] = useState('')
+	const [q, setQ] = useState('')
+	useEffect(() => {
+		const timer = setTimeout(() => setQ(typed.trim()), 350)
+		return () => clearTimeout(timer)
+	}, [typed])
+	const parts = useShopParts(shopId, { ...(categoryId ? { categoryId } : {}), ...(q ? { q } : {}) })
 	const reviews = useShopReviews(shopId, tab === 'reviews')
 	const favorite = useToggleShopFavorite(shopId)
 	const openChat = useOpenChat()
@@ -53,19 +65,21 @@ export default function SellerProfileForBuyerScreen() {
 	const reviewItems = flattenPages(reviews.data).filter((review) => review.tags.length > 0 || review.reply)
 	const brands = shop?.brands ?? []
 	const counts = shop?.counts
+	const openNow = shop ? formatOpenNow(shop.open) : null
+	const partCategories = shop?.partCategories ?? []
 
 	const route = () => shop && openShopRoute(shop)
 	const write = () =>
 		shop &&
 		(signedIn
 			? openChat.mutate({ shopId: shop.id }, { onSuccess: (chat) => router.push({ pathname: '/chat', params: { chatId: String(chat.id) } }) })
-			: router.push('/'))
+			: openSignIn())
 
 	const roundButton = { width: 40, height: 40, borderRadius: 20, backgroundColor: c.floating, alignItems: 'center', justifyContent: 'center' } as const
 
 	return (
 		<View style={{ flex: 1, backgroundColor: c.surface }}>
-			<ScrollView
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
 				scrollEventThrottle={200}
 				onScroll={onNearEnd(() => {
@@ -93,7 +107,7 @@ export default function SellerProfileForBuyerScreen() {
 							alignItems: 'center',
 						}}
 					>
-						<Pressable accessibilityRole="button" accessibilityLabel={t('Назад')} onPress={() => router.back()} style={roundButton}>
+						<Pressable accessibilityRole="button" accessibilityLabel={t('Назад')} onPress={() => goBack()} style={roundButton}>
 							<ChevronLeftIcon size={24} color={c.ink} />
 						</Pressable>
 						<View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -114,21 +128,7 @@ export default function SellerProfileForBuyerScreen() {
 					</View>
 				</View>
 
-				<View style={{ marginTop: -44, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-					{shop?.avatarUrl ? (
-						<Image
-							source={{ uri: resolveUrl(shop.avatarUrl) }}
-							style={{ width: 88, height: 88, borderRadius: 44, borderWidth: 4, borderColor: c.surface }}
-						/>
-					) : loading ? (
-						<View style={{ borderRadius: 48, borderWidth: 4, borderColor: c.surface }}>
-							<Skeleton width={80} height={80} radius={40} />
-						</View>
-					) : (
-						<View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: c.fill, borderWidth: 4, borderColor: c.surface }} />
-					)}
-				</View>
-
+				{/* Только баннер, без круглой аватарки поверх: она повторяла ту же картинку второй раз. */}
 				<View style={{ paddingHorizontal: 16, paddingTop: 12, gap: 14 }}>
 					<QueryErrorBanner error={query.error} onRetry={() => query.refetch()} />
 
@@ -149,6 +149,16 @@ export default function SellerProfileForBuyerScreen() {
 						</Text>
 					</View>
 					)}
+
+					{shop && openNow ? (
+						<View style={{ gap: 2 }}>
+							<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+								<View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: openNow.open ? c.success : c.danger }} />
+								<Text style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: openNow.open ? c.success : c.danger }}>{openNow.label}</Text>
+							</View>
+							<Text style={{ fontSize: fs.md, fontFamily: fontFamily(400), color: c.muted, paddingLeft: 17 }}>{formatSchedule(shop.open)}</Text>
+						</View>
+					) : null}
 
 					{loading ? (
 						<Skeleton height={128} radius={16} />
@@ -179,44 +189,19 @@ export default function SellerProfileForBuyerScreen() {
 					{brands.length ? (
 						<View style={{ gap: 8 }}>
 							<Text style={{ ...sectionTitle, color: c.inkSecondary }}>{t('Продаёт для марок')}</Text>
-							{showAllBrands ? (
-								// all brands as chips: logo + name
-								<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-									{brands.map((brand) => (
-										<View
-											key={brand.id}
-											style={{ height: 32, paddingLeft: 4, paddingRight: 10, borderRadius: 16, backgroundColor: c.card, flexDirection: 'row', alignItems: 'center', gap: 6 }}
-										>
-											<BrandLogo brand={brand} size={24} />
-											<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(600), color: c.ink }}>{brand.name}</Text>
-										</View>
-									))}
-								</View>
-							) : (
-								// a tap on the logos (or «+N») shows every brand
-								<Pressable onPress={() => setShowAllBrands(true)} disabled={brands.length <= VISIBLE_BRANDS} style={{ flexDirection: 'row' }}>
-									{brands.slice(0, VISIBLE_BRANDS).map((brand, i) => (
-										<View key={brand.id} style={{ marginLeft: i === 0 ? 0 : -8 }}>
-											<BrandLogo brand={brand} size={36} />
-										</View>
-									))}
-									{brands.length > VISIBLE_BRANDS ? (
-										<View
-											style={{
-												marginLeft: -8,
-												height: 36,
-												paddingHorizontal: 10,
-												borderRadius: 18,
-												backgroundColor: c.card,
-												alignItems: 'center',
-												justifyContent: 'center',
-											}}
-										>
-											<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(700), color: c.brandStrong }}>+{brands.length - VISIBLE_BRANDS}</Text>
-										</View>
-									) : null}
-								</Pressable>
-							)}
+							<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ marginHorizontal: -16 }}>
+								<View style={{ width: 8 }} />
+								{brands.map((brand) => (
+									<View
+										key={brand.id}
+										style={{ height: 44, paddingLeft: 6, paddingRight: 14, borderRadius: 22, backgroundColor: c.card, flexDirection: 'row', alignItems: 'center', gap: 8 }}
+									>
+										<BrandLogo brand={brand} size={32} />
+										<Text style={{ fontSize: fs.base, fontFamily: fontFamily(600), color: c.ink }}>{brand.name}</Text>
+									</View>
+								))}
+								<View style={{ width: 8 }} />
+							</ScrollView>
 						</View>
 					) : null}
 
@@ -253,6 +238,42 @@ export default function SellerProfileForBuyerScreen() {
 						))}
 					</View>
 
+					{/* Only where there is a lot to look through — a small shop needs no search field. */}
+					{tab === 'parts' && (counts?.parts ?? 0) > SEARCH_FROM ? (
+						<View style={{ height: 46, borderRadius: 12, backgroundColor: c.card, borderWidth: 1.5, borderColor: c.border, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12 }}>
+							<SearchIcon size={18} color={c.muted} />
+							<TextInput
+								inputAccessoryViewID={KEYBOARD_DONE}
+								value={typed}
+								onChangeText={setTyped}
+								placeholder={t('Поиск по товарам магазина')}
+								placeholderTextColor={c.muted}
+								returnKeyType="search"
+								style={{ flex: 1, fontSize: fs.base, fontFamily: fontFamily(400), color: c.ink, padding: 0 }}
+							/>
+						</View>
+					) : null}
+
+					{tab === 'parts' && partCategories.length > 1 ? (
+						<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }} style={{ marginHorizontal: -16 }}>
+							<View style={{ width: 8 }} />
+							{[{ id: null, name: t('Все'), count: counts?.parts ?? 0 }, ...partCategories].map((category) => {
+								const selected = category.id === categoryId
+								return (
+									<Pressable
+										key={category.id ?? 'all'}
+										onPress={() => setCategoryId(category.id)}
+										style={{ height: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: selected ? c.brand : c.card, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+									>
+										<Text style={{ fontSize: fs.base, fontFamily: fontFamily(selected ? 700 : 600), color: selected ? fixed.white : c.ink }}>{category.name}</Text>
+										<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(600), color: selected ? fixed.white : c.muted }}>{category.count}</Text>
+									</Pressable>
+								)
+							})}
+							<View style={{ width: 8 }} />
+						</ScrollView>
+					) : null}
+
 					{tab === 'parts' ? (
 						<View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 10, rowGap: 20, paddingBottom: 24 }}>
 							{partItems.map((part) => (
@@ -272,7 +293,7 @@ export default function SellerProfileForBuyerScreen() {
 								</View>
 							) : null}
 							{parts.isSuccess && partItems.length === 0 ? (
-								<Text style={{ fontSize: fs.base, fontFamily: fontFamily(400), color: c.muted }}>{t('Запчасти ещё не выложены')}</Text>
+								<Text style={{ fontSize: fs.base, fontFamily: fontFamily(400), color: c.muted }}>{q || categoryId ? t('Ничего не нашли — попробуйте другое слово') : t('Запчасти ещё не выложены')}</Text>
 							) : null}
 						</View>
 					) : null}
@@ -329,7 +350,7 @@ export default function SellerProfileForBuyerScreen() {
 					paddingBottom: insets.bottom + 12,
 					borderTopWidth: 1,
 					borderTopColor: c.hairline,
-					backgroundColor: c.card,
+					backgroundColor: c.surface,
 					flexDirection: 'row',
 					gap: 8,
 				}}
@@ -340,7 +361,7 @@ export default function SellerProfileForBuyerScreen() {
 					style={{ flex: 1, height: 52, paddingHorizontal: 10, borderRadius: 14, backgroundColor: c.fill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
 				>
 					<MapPinIcon size={20} color={c.ink} />
-					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{shop && !shop.location ? t('2ГИС') : t('Маршрут')}</Text>
+					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{shop && !shop.location ? t('2ГИС') : t('Маршрут')}</Text>
 				</Pressable>
 				<Pressable
 					onPress={write}
@@ -349,7 +370,7 @@ export default function SellerProfileForBuyerScreen() {
 					style={{ flex: 1.6, height: 52, paddingHorizontal: 10, borderRadius: 14, backgroundColor: c.brand, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: openChat.isPending ? 0.6 : 1 }}
 				>
 					<ChatIcon size={20} color={fixed.white} />
-					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Написать')}</Text>
+					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Написать')}</Text>
 				</Pressable>
 				{/* The phone, then WhatsApp at the edge — only when the shop made the number visible (or after a chat). */}
 				{shop?.phone ? (

@@ -90,6 +90,17 @@ export type Unread = Schemas['UnreadDto']
 
 // ─── Market ──────────────────────────────────────────────────────────────────
 export type MarketRow = Schemas['RowDto']
+/** GET /market/markets — until schema.ts is regenerated from the deployed API. */
+export interface Market {
+	id: number
+	code: string
+	name: string
+	hasScheme: boolean
+	/** Есть карта рынка: у Кудайбергена с контейнерами, у других — ряды и проходы (GET /market/markets/{id}/map). */
+	hasMap?: boolean
+	lat: number | null
+	lng: number | null
+}
 export type RowDetail = Schemas['RowDetailDto']
 export type ContainerSlot = Schemas['ContainerSlotDto']
 export type MapHighlight = Schemas['MapHighlightDto']
@@ -123,6 +134,14 @@ export type MyMaster = Schemas['MyMasterDto']
 export type CreateMasterBody = Schemas['CreateMaster']
 export type UpdateMasterBody = Schemas['UpdateMaster']
 export type MasterFeedItem = Schemas['MasterFeedItemDto']
+
+// ─── Roadside help — «Кто рядом» and the offline pack (contract section 16) ──
+export type NearbyMaster = Schemas['NearbyMasterDto']
+export type OfflinePack = Schemas['OfflinePackDto']
+export type PackMaster = Schemas['PackMaster']
+export type PackServiceType = Schemas['PackServiceType']
+export type EmergencyNumber = Schemas['EmergencyNumber']
+export type OfflinePackVersion = Schemas['Version']
 export type MasterFeedPage = Schemas['CursorPageMasterFeedItemDto']
 export type MasterStats = Schemas['MasterStatsDto']
 export type MasterOfferBody = Schemas['Offer']

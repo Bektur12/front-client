@@ -15,6 +15,7 @@ import { useCreateDeliveryOrder, useDeliveryTariffs } from '@/api/delivery'
 import type { DeliveryRegion, DeliveryRegionCode } from '@/api/types'
 import { shopPlace } from '@/lib/shop-place'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
 
 /**
  * «Доставка» — where to (8 regions), the courier brings it home: address, recipient, phone. No delivery prices in
@@ -136,16 +137,16 @@ export default function DeliveryScreen() {
 				<Caps>{t('Курьер привезёт домой')}</Caps>
 				<View style={{ gap: 6 }}>
 					<Text style={label}>{region ? t('Адрес в {0}', region.inName) : t('Адрес')}</Text>
-					<TextInput value={address} onChangeText={setAddress} placeholder={t('ул. Ленина 45, кв. 12')} placeholderTextColor={c.fillInk} style={input} textContentType="fullStreetAddress" autoComplete="street-address" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => nameRef.current?.focus()} />
+					<TextInput inputAccessoryViewID={KEYBOARD_DONE} value={address} onChangeText={setAddress} placeholder={t('ул. Ленина 45, кв. 12')} placeholderTextColor={c.fillInk} style={input} textContentType="fullStreetAddress" autoComplete="street-address" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => nameRef.current?.focus()} />
 				</View>
 				<View style={{ flexDirection: 'row', gap: 10 }}>
 					<View style={{ flex: 1, gap: 6 }}>
 						<Text style={label}>{t('Получатель')}</Text>
-						<TextInput ref={nameRef} value={recipient} onChangeText={setName} placeholder={t('Имя')} placeholderTextColor={c.fillInk} style={input} textContentType="name" autoComplete="name" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => phoneRef.current?.focus()} />
+						<TextInput inputAccessoryViewID={KEYBOARD_DONE} ref={nameRef} value={recipient} onChangeText={setName} placeholder={t('Имя')} placeholderTextColor={c.fillInk} style={input} textContentType="name" autoComplete="name" returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => phoneRef.current?.focus()} />
 					</View>
 					<View style={{ flex: 1.2, gap: 6 }}>
 						<Text style={label}>{t('Телефон')}</Text>
-						<TextInput
+						<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 							ref={phoneRef}
 							value={recipientPhone}
 							onChangeText={setPhone}

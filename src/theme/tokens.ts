@@ -1,4 +1,5 @@
 // Источник: design/tokens.json. Значения менять только вместе с макетом.
+// Светлая тема в стиле Mashina.kg (ноябрь 2026): белый фон экрана, светло-серые карточки без рамок, синий только для главного действия.
 //
 // Роли цветов (как в макетах design/specs):
 //   brand   — главная кнопка экрана, одна на экран: отправить, опубликовать, написать, могу помочь, сохранить.
@@ -10,13 +11,13 @@
 //   fixed.plate — только табличка места (ряд и контейнер): жёлтый всегда значит «идти сюда».
 
 export const lightColors = {
-	surface: '#F3F5F8',
-	card: '#FFFFFF',
-	ink: '#201F1D',
-	inkSecondary: '#444141',
-	muted: '#605D5D',
-	border: '#D7D3D3',
-	hairline: '#EAE7E7',
+	surface: '#FFFFFF',
+	card: '#F4F5F7',
+	ink: '#1A1C20',
+	inkSecondary: '#3A3F47',
+	muted: '#5A6880',
+	border: '#DDE2E8',
+	hairline: '#E9ECF0',
 	brand: '#2155E6',
 	brandStrong: '#1D46BF',
 	brandTint: '#EDF2FF',
@@ -41,22 +42,22 @@ export const lightColors = {
 	/** Text on brandTint. */
 	brandInk: '#1D2B53',
 	/** Neutral fills: secondary buttons, empty avatars, grey chips. */
-	fill: '#EFEDEC',
-	fillInk: '#7D7979',
+	fill: '#E2E7EE',
+	fillInk: '#7D8BA1',
 	/** Empty photo slots. */
-	placeholder: '#E1E6ED',
-	dashed: '#BAB6B6',
+	placeholder: '#E6EAF0',
+	dashed: '#B9C2CE',
 	/** Dashed «add» outlines on blue-ish forms. */
 	dashedBrand: '#B8C3D3',
-	chevron: '#B8B4B4',
-	toggleOff: '#BAB6B6',
-	toggleOffKnob: '#9B9797',
+	chevron: '#B4BDC9',
+	toggleOff: '#C3CBD6',
+	toggleOffKnob: '#9AA5B4',
 	/** Dark pill on any surface: the toast. */
 	inverse: '#201F1D',
 	/** Round buttons and chips floating over photos (back, share, ♥) — icons on it use `ink`. */
 	floating: 'rgba(255,255,255,0.92)',
 	/** `surface` at zero opacity — the end of a fade into the screen. */
-	surfaceClear: 'rgba(243,245,248,0)',
+	surfaceClear: 'rgba(255,255,255,0)',
 }
 
 export const darkColors: typeof lightColors = {
@@ -244,5 +245,11 @@ export const fs = {
  * Colour at the call site: `{ ...sectionTitle, color: c.inkSecondary }`.
  */
 export const sectionTitle = { fontSize: fs.base, fontFamily: font.bold, letterSpacing: -0.1 } as const
+
+/**
+ * A big section heading on the main tab screens («Нужен мастер?», «Мои запросы», «Мои машины») — large and bold,
+ * as in Mashina.kg. Colour at the call site: `{ ...screenSectionTitle, color: c.ink }`.
+ */
+export const screenSectionTitle = { fontSize: fs.h2, lineHeight: 30, fontFamily: font.bold, letterSpacing: -0.5 } as const
 
 export type Colors = typeof lightColors

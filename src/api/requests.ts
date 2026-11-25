@@ -18,6 +18,7 @@ import type {
 	ReviewTag,
 	WidenResult,
 } from './types'
+import { useSession } from '@/store/useSession'
 
 // ─── Sending [06, 06б, 31] ───────────────────────────────────────────────────
 
@@ -75,7 +76,9 @@ export function useCreateRequest() {
 
 /** «Мои запросы» [05] — badge comes from `state`. */
 export function useMyRequests(status?: RequestStatus) {
+	const signedIn = useSession((s) => s.status === 'authed')
 	return useInfiniteQuery({
+		enabled: signedIn,
 		queryKey: requestKeys.my(status),
 		queryFn: ({ pageParam, signal }) =>
 			apiFetch<RequestSummaryPage>('/requests/my', { query: { status, cursor: pageParam }, signal }),
@@ -141,6 +144,15 @@ export function useWidenRequest(id: number) {
 }
 
 /** «Купил — закрыть запрос» with an optional review of the shop [09]. */
+/** «Удалить» в «Моих запросах»: пропадает из списка; открытый закрывается, продавцы его больше не видят. */
+export function useDeleteRequest() {
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: (id: number) => apiFetch<void>(`/requests/${id}`, { method: 'DELETE' }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: requestKeys.myAll }),
+	})
+}
+
 export function useCloseRequest(id: number) {
 	return useRequestAction(id, (body: CloseRequestBody = {}) =>
 		apiFetch<RequestDetail>(`/requests/${id}/close`, { method: 'POST', body })

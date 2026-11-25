@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { API_URL } from '@/lib/env'
 import { BottomSheet, QueryErrorBanner, ScreenHeader, SettingsRow, Toggle, undoToast } from '@/components/ui'
-import { CloseIcon, HeartIcon } from '@/components/icons'
+import { CloseIcon, HeartIcon, ProfileIcon, RequestsIcon } from '@/components/icons'
 import { BrandLogo } from '@/components/ui/brand'
 import { BellIcon, Caps, ChevronIcon, GlobeIcon, HelpIcon, PlusThinIcon } from '@/components/buyer-v23'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
@@ -16,11 +16,28 @@ import { useCars, useDeleteCar } from '@/api/garage'
 import { toLang, useSession } from '@/store/useSession'
 import { openSupport } from '@/lib/support'
 import { t } from '@/i18n'
+import { SignInPrompt } from '@/components/sign-in-prompt'
+import { useSignedIn } from '@/api/catalog'
 
 /** «Помощь в WhatsApp» — the support number from the build config (digits, e.g. 996555000000). */
 
 /** 10 «Профиль»: name and phone, cars, language, notifications, help. */
-export default function BuyerProfileScreen() {
+/** «Профиль»: a guest gets «Войти» — the garage, favourites and requests belong to an account. */
+export default function BuyerProfileTab() {
+	const signedIn = useSignedIn()
+	if (!signedIn) {
+		return (
+			<SignInPrompt
+				icon={ProfileIcon}
+				title={t('Профиль')}
+				text={t('Войдите по номеру телефона: ваши машины, избранное и запросы будут здесь. Смотреть запчасти и магазины можно и без входа.')}
+			/>
+		)
+	}
+	return <BuyerProfileScreen />
+}
+
+function BuyerProfileScreen() {
 	const c = useColors()
 	const insets = useSafeAreaInsets()
 	const me = useMe()
@@ -56,7 +73,8 @@ export default function BuyerProfileScreen() {
 			<ScrollView contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} showsVerticalScrollIndicator={false}>
 				<QueryErrorBanner error={me.error ?? deleteCar.error} onRetry={() => me.refetch()} />
 
-				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 4, paddingBottom: 8 }}>
+				{/* Tap — photo, name and city [profile-edit]. */}
+				<Pressable onPress={() => router.push('/profile-edit')} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 4, paddingBottom: 8 }}>
 					{user?.avatarUrl ? (
 						<Image source={{ uri: resolveUrl(user.avatarUrl) }} style={{ width: 56, height: 56, borderRadius: 28 }} />
 					) : (
@@ -66,11 +84,14 @@ export default function BuyerProfileScreen() {
 					)}
 					<View style={{ flex: 1, gap: 2 }}>
 						<Text style={{ fontSize: fs.xxl, fontFamily: fontFamily(700), color: c.ink }}>{user ? (user.name ?? t('Без имени')) : ' '}</Text>
-						<Text style={{ fontSize: fs.base, fontFamily: fontFamily(400), color: c.muted }}>{user ? formatE164(user.phone) : ' '}</Text>
+						<Text style={{ fontSize: fs.base, fontFamily: fontFamily(400), color: c.muted }}>
+							{user ? [formatE164(user.phone), user.city].filter(Boolean).join(' · ') : ' '}
+						</Text>
 					</View>
-				</View>
+					<Text style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Изменить')}</Text>
+				</Pressable>
 
-				<Caps>{t('Мои машины')}</Caps>
+				<Caps large>{t('Мои машины')}</Caps>
 				{(cars.data ?? []).filter((car) => !hidden.includes(car.id)).map((car) => (
 					<View key={car.id} style={{ borderRadius: 18, backgroundColor: c.card, padding: 14, gap: 10 }}>
 						<View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -111,6 +132,7 @@ export default function BuyerProfileScreen() {
 
 				<View style={{ height: 4 }} />
 				<View style={{ borderRadius: 18, backgroundColor: c.card, padding: 6 }}>
+					<MenuRow icon={<RequestsIcon size={22} color={c.ink} />} label={t('Мои запросы')} onPress={() => router.push('/my-requests')} />
 					<MenuRow icon={<HeartIcon size={22} color={c.ink} />} label={t('Избранное')} onPress={() => router.push('/favorites')} />
 					<MenuRow icon={<GlobeIcon size={22} color={c.ink} />} label={t('Язык')}>
 						<View style={{ height: 34, borderRadius: 17, backgroundColor: c.card, borderWidth: 1.5, borderColor: c.border, flexDirection: 'row', padding: 2 }}>

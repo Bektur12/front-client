@@ -2,11 +2,15 @@
 import { useMemo } from 'react'
 import { Platform } from 'react-native'
 import { File, Paths } from 'expo-file-system'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { API_URL, apiFetch } from '@/lib/api'
 import { buildMarketGeo, bundledScheme, type MarketScheme } from '@/lib/market-geojson'
+import { affineToGeo, type GeoAffine } from '@/lib/geo'
 import { marketKeys } from './keys'
-import type { MapHighlight, MarketRoute, MarketRow, MarketSearch, QrResolve, RowDetail } from './types'
+import type { MapHighlight, Market, MarketRoute, MarketRow, MarketSearch, QrResolve, RowDetail } from './types'
+
+export type Side = 'NORTH' | 'SOUTH' | 'WEST' | 'EAST'
+export type ContainerSlot = RowDetail['sides'][number]['containers'][number]
 
 export function useRows() {
 	return useQuery({
@@ -27,6 +31,38 @@ export function useRowContainers(rowId: number, brandId?: number) {
 			apiFetch<RowDetail>(`/market/rows/${rowId}/containers`, { query: { brandId }, signal }),
 		// 10а asks before the row list has loaded.
 		enabled: rowId > 0,
+	})
+}
+
+/**
+ * «Моего контейнера нет в списке» — the seller adds it to the row: POST /market/rows/{id}/containers.
+ * `side` only when the row has two sides; the server takes the row's only side otherwise. An inactive box comes back to life.
+ */
+export function useAddContainer() {
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: ({ rowId, number, side }: { rowId: number; number: number; side?: Side }) =>
+			apiFetch<ContainerSlot>(`/market/rows/${rowId}/containers`, { method: 'POST', body: { number, side } }),
+		onSuccess: (_, { rowId }) => {
+			queryClient.invalidateQueries({ queryKey: marketKeys.row(rowId) })
+			queryClient.invalidateQueries({ queryKey: marketKeys.rows })
+			queryClient.invalidateQueries({ queryKey: marketKeys.map })
+		},
+	})
+}
+
+/**
+ * «Добавить ряд» — the typed row is not in the database: POST /market/rows creates it (not drawn on the map until
+ * the admin places it). An existing row comes back as is.
+ */
+export function useAddRow() {
+	const queryClient = useQueryClient()
+	return useMutation({
+		mutationFn: (code: string) => apiFetch<MarketRow>('/market/rows', { method: 'POST', body: { code } }),
+		onSuccess: (row) => {
+			queryClient.setQueryData<MarketRow[]>(marketKeys.rows, (list) => (list && !list.some((r) => r.id === row.id) ? [...list, row] : list))
+			queryClient.invalidateQueries({ queryKey: marketKeys.rows })
+		},
 	})
 }
 
@@ -87,38 +123,64 @@ export function useMarketScheme() {
 		queryFn: fetchScheme,
 		initialData: bundledScheme,
 		initialDataUpdatedAt: 0,
-		staleTime: 60 * 60_000,
+		// магазины в контейнерах меняются — схему перепроверяем раз в 5 минут (ETag: без изменений — 304)
+		staleTime: 5 * 60_000,
 	})
 }
 
 /** GeoJSON of the market with highlighted rows — for MarketMapLive. */
-export function useMarketGeo(highlightedRowIds: number[] = []) {
+export function useMarketGeo(highlightedRowIds: number[] = [], targetContainerId?: number, highlightedContainerIds: number[] = []) {
 	const scheme = useMarketScheme().data
 	const key = highlightedRowIds.join(',')
-	// eslint-disable-next-line react-hooks/exhaustive-deps -- ids compared by value
-	return useMemo(() => buildMarketGeo(scheme, highlightedRowIds), [scheme, key])
+	const cellsKey = highlightedContainerIds.join(',')
+	return useMemo(
+		() => buildMarketGeo(scheme, highlightedRowIds, targetContainerId, highlightedContainerIds),
+		// eslint-disable-next-line react-hooks/exhaustive-deps -- ids compared by value
+		[scheme, key, targetContainerId, cellsKey],
+	)
+}
+
+/** Карта рынка без контейнеров (Геология…): тот же формат, что у Кудайбергена, плюс своя матрица GPS. */
+export type MarketPlan = MarketScheme & { geo: GeoAffine }
+
+export function useMarketPlan(marketId: number | undefined) {
+	return useQuery({
+		queryKey: ['market', 'plan', marketId],
+		queryFn: async ({ signal }) => (await (await fetch('/dev-plan-4.json', { signal })).json()) as MarketPlan, // DEV-HACK
+		enabled: marketId != null,
+		staleTime: 30 * 60_000,
+	})
+}
+
+/** GeoJSON карты другого рынка — для MarketMapLive (prop geo). */
+export function usePlanGeo(plan: MarketPlan | undefined) {
+	return useMemo(() => (plan ? buildMarketGeo(plan, [], undefined, [], affineToGeo(plan.geo)) : undefined), [plan])
 }
 
 /**
  * «Mercedes-Benz — в 6 рядах · 21 бокс · ближайший ряд 14, 170 м» [15].
- * Without a point the server counts from the main entrance.
+ * categoryId вместе с маркой — «Toyota · Оптика»: только продавцы марки в этой категории.
+ * Without a point the server counts from the entrance nearest to the container.
  */
-export function useMapHighlight(kind: 'BRAND' | 'CATEGORY', id: number | undefined) {
+export function useMapHighlight(kind: 'BRAND' | 'CATEGORY', id: number | undefined, categoryId?: number) {
+	const query = categoryId ? { kind, id, categoryId } : { kind, id }
 	return useQuery({
-		queryKey: marketKeys.highlight({ kind, id }),
-		queryFn: ({ signal }) =>
-			apiFetch<MapHighlight>('/market/map/highlight', { query: { kind, id }, auth: false, signal }),
+		queryKey: marketKeys.highlight(query),
+		queryFn: ({ signal }) => apiFetch<MapHighlight>('/market/map/highlight', { query, auth: false, signal }),
 		enabled: Boolean(id),
 		placeholderData: keepPreviousData,
 	})
 }
 
 /** Route to a box [18]: polyline over the passages, minutes, metres and steps. */
-export function useRoute(toContainerId: number) {
+/** Маршрут до бокса. from — GPS покупателя: на рынке путь идёт от него, рядом с рынком — от него через ближайший по пути вход, издалека — от входа. */
+export function useRoute(toContainerId: number, from?: { lat: number; lon: number } | null) {
+	const query = from ? { toContainerId, fromLat: from.lat, fromLon: from.lon } : { toContainerId }
 	return useQuery({
-		queryKey: marketKeys.route({ toContainerId }),
-		queryFn: ({ signal }) => apiFetch<MarketRoute>('/market/route', { query: { toContainerId }, auth: false, signal }),
+		queryKey: marketKeys.route(query),
+		queryFn: ({ signal }) => apiFetch<MarketRoute>('/market/route', { query, auth: false, signal }),
 		enabled: toContainerId > 0,
+		placeholderData: keepPreviousData,
 	})
 }
 
@@ -139,5 +201,17 @@ export function useQrResolve(token: string) {
 		queryFn: ({ signal }) => apiFetch<QrResolve>(`/market/qr/${encodeURIComponent(token)}`, { auth: false, signal }),
 		enabled: Boolean(token),
 		retry: false,
+	})
+}
+
+/**
+ * Markets: Кудайберген (with the row scheme), Дордой Моторс, Дордой, Геология — the seller's «Где вы продаёте» and
+ * the buyer's «Рынок» filter (marketId in /parts/search, /shops, /catalog/videos; 0 — shops off the markets).
+ */
+export function useMarkets() {
+	return useQuery({
+		queryKey: ['market', 'markets'],
+		queryFn: ({ signal }) => apiFetch<Market[]>('/market/markets', { auth: false, signal }),
+		staleTime: 24 * 60 * 60_000,
 	})
 }

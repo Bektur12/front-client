@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { KeyboardAvoidingView, Modal, Platform, Pressable, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/ui'
@@ -7,6 +7,9 @@ import { fontFamily, fs, useColors } from '@/theme'
 import { useComplain } from '@/api/complaints'
 import type { ComplaintReason, ComplaintType } from '@/api/types'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { requireSignIn } from '@/components/sign-in-prompt'
+import { useSignedIn } from '@/api/catalog'
 
 const REASONS: { value: ComplaintReason; label: string; for?: ComplaintType[] }[] = [
 	{ value: 'FAKE_ORIGINAL', label: t('Подделка под оригинал'), for: ['PART', 'SHOP', 'SHOP_PHOTO'] },
@@ -29,8 +32,16 @@ export interface ComplaintTarget {
  * the text is optional. After sending — «Спасибо, администрация проверит».
  */
 export function ComplaintSheet({ target, onClose }: { target: ComplaintTarget | null; onClose: () => void }) {
+	const signedIn = useSignedIn()
+	// A complaint has an author — a guest is asked to sign in instead of a sheet that would fail on «Отправить».
+	useEffect(() => {
+		if (target && !signedIn) {
+			onClose()
+			requireSignIn(t('Чтобы пожаловаться, войдите по номеру телефона.'))
+		}
+	}, [target, signedIn, onClose])
 	return (
-		<Modal visible={target !== null} transparent animationType="slide" onRequestClose={onClose}>
+		<Modal visible={target !== null && signedIn} transparent animationType="slide" onRequestClose={onClose}>
 			{target ? <Sheet key={`${target.type}-${target.targetId}`} target={target} onClose={onClose} /> : null}
 		</Modal>
 	)
@@ -83,7 +94,7 @@ function Sheet({ target, onClose }: { target: ComplaintTarget; onClose: () => vo
 								)
 							})}
 						</View>
-						<TextInput
+						<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 							value={text}
 							onChangeText={(v) => setText(v.slice(0, 500))}
 							placeholder={t('Подробности — необязательно')}

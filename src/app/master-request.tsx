@@ -8,6 +8,7 @@ import { markServiceSeen, serviceName, useMasterOffer, useMasterRequest, useServ
 import { RequestCard } from './master/index'
 import { t } from '@/i18n'
 import { useHiddenCards } from '@/store/useHiddenCards'
+import { goBack } from '@/lib/navigation'
 
 /** A client's request opened from «Заявки»: the same card, photos and videos large, the answer buttons below. */
 export default function MasterRequestScreen() {
@@ -40,7 +41,7 @@ export default function MasterRequestScreen() {
 						onSkip={() => {
 							const { hide, show } = useHiddenCards.getState()
 							hide('master-feed', id)
-							router.back()
+							goBack()
 							undoToast({
 								text: t('Ответили «Не моё»'),
 								restore: () => show('master-feed', id),

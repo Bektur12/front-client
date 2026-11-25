@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { QueryErrorBanner, ScreenHeader } from '@/components/ui'
 import { BrandLogo } from '@/components/ui/brand'
+import { GalleryIcon } from '@/components/icons'
 import { BigButton, Caps, CameraV23Icon, CrossIcon, MicV23Icon, PaperPlaneIcon, PlusThinIcon } from '@/components/buyer-v23'
 import { VoicePlayer, useVoiceNote, voiceClock } from '@/components/voice'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
@@ -17,6 +18,8 @@ import { useCreateRequest, useRecipientsEstimate } from '@/api/requests'
 import { useClientCar } from '@/store/useClientCar'
 import { useSession } from '@/store/useSession'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { goBack } from '@/lib/navigation'
 
 /**
  * 04 «Найти запчасть»: car, photo + voice + text, the request goes to sellers of the car's brand.
@@ -88,9 +91,9 @@ export default function SearchPartScreen() {
 
 	return (
 		<View style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
-			<ScreenHeader title={t('Найти запчасть')} big onClose={() => router.back()} />
+			<ScreenHeader title={t('Найти запчасть')} big onClose={() => goBack()} />
 
-			<ScrollView
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag"
 				contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }}
 				showsVerticalScrollIndicator={false}
 				keyboardShouldPersistTaps="handled"
@@ -224,7 +227,7 @@ export default function SearchPartScreen() {
 							<View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: c.brandTint, alignItems: 'center', justifyContent: 'center' }}>
 								<CameraV23Icon size={26} color={c.brandStrong} />
 							</View>
-							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: c.ink }}>{t('Сфотать деталь')}</Text>
+							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1, fontSize: fs.base, fontFamily: fontFamily(700), color: c.ink }}>{t('Сфотать деталь')}</Text>
 						</DashedTile>
 					)}
 
@@ -253,15 +256,28 @@ export default function SearchPartScreen() {
 							>
 								{voice.uploading ? <ActivityIndicator color={fixed.white} /> : <MicV23Icon size={26} color={fixed.white} />}
 							</View>
-							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: c.ink }}>
+							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ flexShrink: 1, fontSize: fs.base, fontFamily: fontFamily(700), color: c.ink }}>
 								{voice.uploading ? t('Слушаем…') : voice.recording ? t('Готово · {0}', voiceClock(voice.seconds)) : t('Сказать голосом')}
 							</Text>
 						</DashedTile>
 					)}
 				</View>
+				{/* Фото уже в телефоне — из галереи (раньше только долгим нажатием на «Сфотать», никто не находил). */}
+				{uploads.canAdd ? (
+					<Pressable
+						onPress={() => uploads.pick('library')}
+						accessibilityRole="button"
+						style={{ height: 44, borderRadius: 14, backgroundColor: c.brandTint, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+					>
+						<GalleryIcon size={20} color={c.brandStrong} />
+						<Text style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: c.brandStrong }}>
+							{photo ? t('Добавить из галереи') : t('Выбрать из галереи')}
+						</Text>
+					</Pressable>
+				) : null}
 				{voice.error ? <Text style={{ fontSize: fs.sm, fontFamily: fontFamily(500), color: c.danger }}>{voice.error}</Text> : null}
 
-				<TextInput
+				<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 					value={text}
 					onChangeText={setText}
 					maxLength={200}

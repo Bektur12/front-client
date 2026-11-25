@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import * as ImagePicker from 'expo-image-picker'
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { confirmDeletePart } from '@/lib/delete-part'
 import { useConfirmLeave } from '@/lib/use-confirm-leave'
 import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -8,15 +10,17 @@ import { Button, QueryErrorBanner, ScreenHeader, Segmented, Skeleton, toast, Tog
 import { MediaViewer } from '@/components/media-viewer'
 import { PlayIcon } from '@/components/voice'
 import { BrandLogo } from '@/components/ui/brand'
-import { CameraIcon, CloseIcon, PlusIcon } from '@/components/icons'
+import { CameraIcon, CloseIcon, GalleryIcon, PlusIcon } from '@/components/icons'
 import { fixed, fontFamily, fs, raw, useColors } from '@/theme'
 import { ApiError, resolveUrl } from '@/lib/api'
 import { formatNumber } from '@/lib/format'
 import { useCategories } from '@/api/directory'
-import { useMyPart, usePublishPart, useSavePart } from '@/api/parts'
+import { useDeletePart, useMyPart, usePublishPart, useSavePart } from '@/api/parts'
 import type { MediaItem, PartCondition } from '@/api/types'
 import { MAX_PART_PHOTOS, type PartDraft, partBody, usePartDraft } from '@/store/usePartDraft'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { goBack } from '@/lib/navigation'
 
 const CONDITIONS: { value: PartCondition; label: string }[] = [
 	{ value: 'NEW', label: t('Новое') },
@@ -35,18 +39,20 @@ const MISSING: Record<string, string> = {
 }
 
 /** What the seller typed or picked — to tell an untouched form from one with unsaved input. */
-const fingerprint = (d: Pick<PartDraft, 'title' | 'categoryId' | 'condition' | 'price' | 'quantity' | 'oemNumber' | 'fitments' | 'photos'>) =>
+const fingerprint = (d: Pick<PartDraft, 'title' | 'categoryId' | 'condition' | 'price' | 'priceNegotiable' | 'quantity' | 'oemNumber' | 'shipsToRegions' | 'fitments' | 'photos'>) =>
 	JSON.stringify([
 		d.title.trim(),
 		d.categoryId,
 		d.condition,
 		d.price,
+		d.priceNegotiable,
 		d.quantity,
 		d.oemNumber,
+		d.shipsToRegions,
 		d.fitments.map((f) => [f.brandId, f.modelId, f.yearFrom, f.yearTo]),
 		d.photos.map((p) => p.key),
 	])
-const EMPTY = fingerprint({ title: '', categoryId: undefined, condition: 'NEW', price: '', quantity: 1, oemNumber: undefined, fitments: [], photos: [] })
+const EMPTY = fingerprint({ title: '', categoryId: undefined, condition: 'NEW', price: '', priceNegotiable: false, quantity: 1, oemNumber: undefined, shipsToRegions: true, fitments: [], photos: [] })
 
 /** 26 «Новая запчасть» — create (after 24 / 25) or edit (`id`). Draft → publish. */
 export default function NewPartScreen() {
@@ -58,6 +64,7 @@ export default function NewPartScreen() {
 	const categories = useCategories()
 	const save = useSavePart()
 	const publish = usePublishPart()
+	const remove = useDeletePart()
 	const [pickCategory, setPickCategory] = useState(false)
 
 	// Editing: fill the draft from the server once.
@@ -71,7 +78,7 @@ export default function NewPartScreen() {
 	useEffect(() => {
 		resetSave()
 		resetPublish()
-	}, [draft.photos.length, draft.fitments.length, draft.title, draft.categoryId, draft.price, resetSave, resetPublish])
+	}, [draft.photos.length, draft.fitments.length, draft.title, draft.categoryId, draft.price, draft.priceNegotiable, resetSave, resetPublish])
 
 	const published = existing.data?.status === 'ACTIVE'
 	// Editing: until the saved part is in the draft the form would show (and could save) an empty one.
@@ -104,7 +111,7 @@ export default function NewPartScreen() {
 		try {
 			await saveDraft()
 			toast(t('Черновик сохранён'))
-			leave(() => router.back())
+			leave(() => goBack())
 		} catch {}
 	}
 
@@ -113,8 +120,31 @@ export default function NewPartScreen() {
 			const part = await saveDraft()
 			if (part.status !== 'ACTIVE') await publish.mutateAsync(part.id)
 			toast(part.status === 'ACTIVE' ? t('Изменения сохранены') : t('Опубликовано'))
-			leave(() => router.back())
+			leave(() => goBack())
 		} catch {}
+	}
+
+	const onDelete = () =>
+		id &&
+		confirmDeletePart(
+			() => remove.mutateAsync(id),
+			() => {
+				usePartDraft.getState().reset()
+				leave(() => goBack())
+			}
+		)
+
+	// Several photos at once straight from the gallery, without going through the camera.
+	const fromGallery = async () => {
+		const left = MAX_PART_PHOTOS - usePartDraft.getState().photos.length
+		if (left <= 0) return
+		const result = await ImagePicker.launchImageLibraryAsync({
+			mediaTypes: ['images'],
+			allowsMultipleSelection: left > 1,
+			selectionLimit: left,
+			orderedSelection: true,
+		})
+		if (!result.canceled) usePartDraft.getState().addPhotos(result.assets.map((a) => a.uri))
 	}
 
 	const [main, second, third] = draft.photos
@@ -186,7 +216,7 @@ export default function NewPartScreen() {
 			{loading ? (
 				<PartFormSkeleton />
 			) : (
-			<ScrollView contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 14, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: 16, paddingTop: 8, gap: 14, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
 				<QueryErrorBanner error={existing.error ?? categories.error} onRetry={() => existing.refetch()} />
 
 				<View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
@@ -206,28 +236,36 @@ export default function NewPartScreen() {
 					{photoTile(main, true)}
 					{photoTile(second, false)}
 					{photoTile(third, false)}
-					{draft.photos.length < MAX_PART_PHOTOS ? (
-						<Pressable
-							onPress={() => router.push({ pathname: '/camera', params: { from: 'form' } })}
-							style={{
-								width: 84,
-								height: 84,
-								borderRadius: 12,
-								backgroundColor: c.card,
-								borderWidth: 2,
-								borderStyle: 'dashed',
-								borderColor: raw.mapRowBorder,
-								alignItems: 'center',
-								justifyContent: 'center',
-								gap: 4,
-							}}
-						>
-							<CameraIcon size={24} color={c.brandStrong} />
-							<Text style={{ fontSize: fs.xs, fontFamily: fontFamily(700), color: c.brandStrong }}>
-								{draft.photos.length ? t('Ещё фото') : t('Фото')}
-							</Text>
-						</Pressable>
-					) : null}
+					{draft.photos.length < MAX_PART_PHOTOS
+						? (
+								[
+									{ key: 'camera', label: t('Снять'), Icon: CameraIcon, onPress: () => router.push({ pathname: '/camera', params: { from: 'form' } }) },
+									{ key: 'gallery', label: t('Галерея'), Icon: GalleryIcon, onPress: fromGallery },
+								] as const
+							).map(({ key, label, Icon, onPress }) => (
+								<Pressable
+									key={key}
+									accessibilityRole="button"
+									accessibilityLabel={key === 'gallery' ? t('Выбрать из галереи') : t('Сделать снимок')}
+									onPress={onPress}
+									style={{
+										width: draft.photos.length >= 2 ? 64 : 80,
+										height: 80,
+										borderRadius: 12,
+										backgroundColor: c.card,
+										borderWidth: 2,
+										borderStyle: 'dashed',
+										borderColor: raw.mapRowBorder,
+										alignItems: 'center',
+										justifyContent: 'center',
+										gap: 4,
+									}}
+								>
+									<Icon size={24} color={c.brandStrong} />
+									<Text style={{ fontSize: fs.xs, fontFamily: fontFamily(700), color: c.brandStrong }}>{label}</Text>
+								</Pressable>
+							))
+						: null}
 				</View>
 				{draft.photos.length > 3 ? (
 					<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(500), color: c.muted }}>
@@ -248,7 +286,7 @@ export default function NewPartScreen() {
 							justifyContent: 'center',
 						}}
 					>
-						<TextInput
+						<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 							value={draft.title}
 							onChangeText={(title) => draft.set({ title })}
 							maxLength={120}
@@ -376,6 +414,7 @@ export default function NewPartScreen() {
 					/>
 				</View>
 
+				{!draft.priceNegotiable ? (
 				<View style={{ flexDirection: 'row', gap: 16 }}>
 					<View style={{ flex: 1, gap: 6 }}>
 						<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(600), color: c.muted }}>{t('Цена')}</Text>
@@ -392,7 +431,7 @@ export default function NewPartScreen() {
 								gap: 8,
 							}}
 						>
-							<TextInput
+							<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 								value={draft.price ? formatNumber(Number(draft.price.replace(/\D/g, ''))) : ''}
 								onChangeText={(text) => draft.set({ price: text.replace(/\D/g, '').slice(0, 9) })}
 								keyboardType="numeric"
@@ -403,6 +442,27 @@ export default function NewPartScreen() {
 							<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(400), color: c.muted }}>{t('сом')}</Text>
 						</View>
 					</View>
+				</View>
+				) : null}
+
+				{/* «Договорная»: no price on the card — the buyer asks in the chat or calls. */}
+				<View
+					style={{
+						minHeight: 56,
+						borderRadius: 12,
+						backgroundColor: c.card,
+						paddingHorizontal: 14,
+						paddingVertical: 10,
+						flexDirection: 'row',
+						alignItems: 'center',
+						gap: 12,
+					}}
+				>
+					<View style={{ flex: 1, gap: 2 }}>
+						<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(600), color: c.ink }}>{t('Цена договорная')}</Text>
+						<Text style={{ fontSize: fs.sm, lineHeight: 18.5, fontFamily: fontFamily(400), color: c.muted }}>{t('Покупатель узнает цену в чате или по телефону')}</Text>
+					</View>
+					<Toggle value={draft.priceNegotiable} onChange={(on) => draft.set({ priceNegotiable: on })} />
 				</View>
 
 				{/* No count of pieces — just whether it's there; out of stock = quantity 0. */}
@@ -420,6 +480,17 @@ export default function NewPartScreen() {
 					<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(600), color: c.ink }}>{t('Есть в наличии')}</Text>
 					<Toggle value={draft.quantity > 0} onChange={(on) => draft.set({ quantity: on ? 1 : 0 })} />
 				</View>
+
+				{id ? (
+					<Pressable
+						accessibilityRole="button"
+						disabled={remove.isPending}
+						onPress={onDelete}
+						style={{ height: 52, borderRadius: 12, alignItems: 'center', justifyContent: 'center', opacity: remove.isPending ? 0.4 : 1 }}
+					>
+						<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.danger }}>{t('Удалить запчасть')}</Text>
+					</Pressable>
+				) : null}
 			</ScrollView>
 			)}
 
@@ -430,7 +501,7 @@ export default function NewPartScreen() {
 					paddingBottom: insets.bottom + 12,
 					borderTopWidth: 1,
 					borderTopColor: c.hairline,
-					backgroundColor: c.card,
+					backgroundColor: c.surface,
 					gap: 10,
 				}}
 			>

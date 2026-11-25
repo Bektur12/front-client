@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Alert, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native'
-import { router } from 'expo-router'
 import { onNearEnd } from '@/lib/scroll'
 import { PaperPlaneIcon } from '@/components/buyer-v23'
 import { ModalSheet } from '@/components/master-v23'
@@ -12,6 +11,8 @@ import { flattenPages } from '@/api/pagination'
 import { useAddPartComment, useDeletePartComment, usePartComments, useSignedIn } from '@/api/catalog'
 import type { PartComment } from '@/api/types'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { openSignIn } from '@/components/sign-in-prompt'
 
 /**
  * Comments under a video part (the reels-like feed): newest first, «Продавец» on the box's own answers, a field to
@@ -33,7 +34,8 @@ export function CommentsSheet({ partId, onClose }: { partId: number; onClose: ()
 	const send = () => {
 		if (!signedIn) {
 			onClose()
-			router.push('/')
+			// iOS drops a navigation started while a modal is still closing — wait for the sheet to go.
+			setTimeout(openSignIn, 350)
 			return
 		}
 		if (!value || add.isPending) return
@@ -106,7 +108,7 @@ export function CommentsSheet({ partId, onClose }: { partId: number; onClose: ()
 
 			{add.error ? <Text style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.danger }}>{add.error.message}</Text> : null}
 			<View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 10 }}>
-				<TextInput
+				<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 					value={text}
 					onChangeText={setText}
 					placeholder={signedIn ? t('Написать комментарий') : t('Войдите, чтобы написать')}

@@ -6,7 +6,7 @@ import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import * as Location from 'expo-location'
-import { addressAt, currentCoords } from '@/lib/locate'
+import { addressAt, currentPosition } from '@/lib/locate'
 import { BrandLogo, ServiceIcon } from '@/components/ui'
 import { VoicePlayer, useVoiceNote, voiceClock } from '@/components/voice'
 import { CameraOutline, CloseX, MicOutline, ModalSheet, PinOutline, SendPlane } from '@/components/master-v23'
@@ -18,6 +18,8 @@ import { useCreateServiceRequest, useServiceEstimate } from '@/api/services'
 import { MARKET_POINT } from '@/data/service-types'
 import { useServiceDraft } from '@/store/useServiceDraft'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
+import { goBack } from '@/lib/navigation'
 
 /** The six tiles of the mockup, in its order. */
 const SERVICES: { code: string; label: string }[] = [
@@ -29,9 +31,26 @@ const SERVICES: { code: string; label: string }[] = [
 	{ code: 'LPG', label: t('ГБО') },
 ]
 const MAX_MEDIA = 5
-const MARKET_LABEL = t('Рядом с рынком Кудайберген')
 
-type Point = { lat: number; lng: number; label: string; address?: string }
+/** locatedAt — время GPS-фикса (мс), нет — точка выбрана вручную (рынок). */
+type Point = { lat: number; lng: number; label: string; address?: string; locatedAt?: number }
+type Found = { point: Point } | { error: string }
+
+/** Где человек сейчас: адрес и время фикса. Без разрешения или при ошибке — причина, точка остаётся прежней. */
+async function findPoint(): Promise<Found> {
+	try {
+		if (!(await Location.requestForegroundPermissionsAsync()).granted) {
+			return { error: t('Разрешите доступ к геолокации в настройках') }
+		}
+		const { coords, timestamp } = await currentPosition()
+		const address = await addressAt(coords)
+		return {
+			point: { lat: coords.latitude, lng: coords.longitude, label: address ?? t('Где я сейчас'), address: address ?? undefined, locatedAt: timestamp },
+		}
+	} catch {
+		return { error: t('Не удалось определить место — попробуйте ещё раз') }
+	}
+}
 
 /** 16 «Нужен мастер» — service, car, what happened (photo / voice / text) and where, on one screen. */
 export default function ServiceNewScreen() {
@@ -51,12 +70,17 @@ export default function ServiceNewScreen() {
 		const said = result.voice.transcript?.trim() ?? ''
 		if (said) setDescription((current) => (current.trim() ? current : said.slice(0, 500)))
 	})
-	const [point, setPoint] = useState<Point>({ ...MARKET_POINT, label: MARKET_LABEL })
-	const [pickPoint, setPickPoint] = useState(false)
-	const [locating, setLocating] = useState(false)
+	// где человек — определяем сами при открытии; не вышло — человек пишет адрес текстом
+	const [point, setPoint] = useState<Point | null>(null)
+	const [locating, setLocating] = useState(true)
 	const [locateError, setLocateError] = useState<string | null>(null)
+	/** Адрес текстом: геолокации нет или человек нажал «Изменить». */
+	const [typing, setTyping] = useState(false)
+	const [typed, setTyped] = useState('')
 	const create = useCreateServiceRequest()
-	const estimate = useServiceEstimate({ service, carId: car?.id ?? null, lat: point.lat, lng: point.lng, radiusKm: 5 })
+	// пока точки нет — считаем мастеров по городу (точка рынка — центр поиска, человеку не показываем)
+	const near = point ?? MARKET_POINT
+	const estimate = useServiceEstimate({ service, carId: car?.id ?? null, lat: near.lat, lng: near.lng, radiusKm: 5 })
 
 	useEffect(() => {
 		useServiceDraft.getState().reset()
@@ -67,7 +91,8 @@ export default function ServiceNewScreen() {
 	// Something to go on: text, photos / videos or a voice note — no minimum length.
 	const described = text.length > 0 || media.mediaIds.length > 0 || Boolean(voice.result)
 	const leave = useConfirmLeave(described || media.uploading || voice.recording)
-	const ready = Boolean(car) && described && !media.uploading && !voice.uploading && !voice.recording && recipients !== 0
+	const placed = typing ? typed.trim().length >= 3 : Boolean(point)
+	const ready = Boolean(car) && described && !locating && placed && !media.uploading && !voice.uploading && !voice.recording && recipients !== 0
 
 	const hint = !car
 		? t('Добавьте машину — мастера смотрят марку')
@@ -77,27 +102,45 @@ export default function ServiceNewScreen() {
 					? t('Спросим {0} {1} рядом', recipients, plural(recipients, [t('мастера'), t('мастеров'), t('мастеров')]))
 					: ''
 
-	const locate = async () => {
+	/** Нашли место — подставить; нет — поле для адреса и причина. */
+	const applyFound = (found: Found) => {
+		if ('point' in found) {
+			setPoint(found.point)
+			setTyping(false)
+		} else {
+			setLocateError(found.error)
+			setTyping(true)
+		}
+		setLocating(false)
+	}
+	/** Адрес текстом → точка: геокодер телефона; не нашёл (или веб) — адрес уходит текстом, мастера ищем по городу. */
+	const placeTyped = async (): Promise<Point | null> => {
+		const address = typed.trim()
+		if (address.length < 3) return null
+		const [found] = await Location.geocodeAsync(`${address}, Бишкек`).catch(() => [] as Location.LocationGeocodedLocation[])
+		const typedPoint = { lat: found?.latitude ?? MARKET_POINT.lat, lng: found?.longitude ?? MARKET_POINT.lng, label: address, address }
+		setPoint(typedPoint)
+		return typedPoint
+	}
+	const locate = () => {
 		setLocating(true)
 		setLocateError(null)
-		try {
-			if (!(await Location.requestForegroundPermissionsAsync()).granted) {
-				setLocateError(t('Разрешите доступ к геолокации в настройках'))
-				return
-			}
-			const coords = await currentCoords()
-			const address = await addressAt(coords)
-			setPoint({ lat: coords.latitude, lng: coords.longitude, label: address ?? t('Где я сейчас'), address: address ?? undefined })
-			setPickPoint(false)
-		} catch {
-			setLocateError(t('Не удалось определить место — попробуйте ещё раз'))
-		} finally {
-			setLocating(false)
-		}
+		findPoint().then(applyFound)
 	}
 
-	const send = () => {
+	// при открытии — сразу геолокация, без выбора
+	useEffect(() => {
+		let alive = true
+		findPoint().then((found) => alive && applyFound(found))
+		return () => {
+			alive = false
+		}
+	}, [])
+
+	const send = async () => {
 		if (!ready || !car) return
+		// адрес текстом — точка по нему, даже если «Отправить» нажали, не закрыв клавиатуру
+		const target: { lat: number; lng: number; address?: string } = (typing ? await placeTyped() : point) ?? near
 		create.mutate(
 			{
 				service,
@@ -105,9 +148,9 @@ export default function ServiceNewScreen() {
 				description: text || undefined,
 				mediaIds: media.mediaIds,
 				voiceMediaId: voice.result?.voice.id,
-				lat: point.lat,
-				lng: point.lng,
-				address: point.address,
+				lat: target.lat,
+				lng: target.lng,
+				address: target.address,
 			},
 			{
 				onSuccess: (request) => {
@@ -126,12 +169,12 @@ export default function ServiceNewScreen() {
 		<View style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
 			<View style={{ height: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 				<Text style={{ flex: 1, fontSize: fs.h1, fontFamily: fontFamily(700), letterSpacing: -0.26, color: c.ink }}>{t('Нужен мастер')}</Text>
-				<Pressable onPress={() => router.back()} hitSlop={10}>
+				<Pressable onPress={() => goBack()} hitSlop={10}>
 					<CloseX size={24} color={c.ink} />
 				</Pressable>
 			</View>
 
-			<ScrollView
+			<ScrollView automaticallyAdjustKeyboardInsets keyboardDismissMode="on-drag"
 				contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 16, paddingBottom: 16, gap: 9 }}
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
@@ -313,7 +356,7 @@ export default function ServiceNewScreen() {
 				) : null}
 				{voice.error ? <Text style={{ fontSize: fs.sm, fontFamily: fontFamily(500), color: c.danger }}>{voice.error}</Text> : null}
 
-				<TextInput
+				<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 					value={description}
 					onChangeText={(value) => setDescription(value.slice(0, 500))}
 					placeholder={t('Например: стучит спереди справа на кочках')}
@@ -334,13 +377,41 @@ export default function ServiceNewScreen() {
 					}}
 				/>
 
-				<View style={{ height: 48, borderRadius: 14, backgroundColor: c.card, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 }}>
-					<PinOutline size={20} color={c.brandStrong} />
-					<Text numberOfLines={1} style={{ flex: 1, fontSize: fs.base, fontFamily: fontFamily(400), color: c.ink }}>
-						{point.label}
-					</Text>
-					<Text onPress={() => setPickPoint(true)} style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Изменить')}</Text>
-				</View>
+				{typing ? (
+					<View style={{ gap: 6 }}>
+						<View style={{ height: 48, borderRadius: 14, backgroundColor: c.card, borderWidth: 2, borderColor: c.border, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 }}>
+							<PinOutline size={20} color={c.brandStrong} />
+							<TextInput
+								inputAccessoryViewID={KEYBOARD_DONE}
+								value={typed}
+								onChangeText={(value) => setTyped(value.slice(0, 120))}
+								onEndEditing={placeTyped}
+								onSubmitEditing={placeTyped}
+								autoFocus={Boolean(point)}
+								placeholder={t('Где вы: улица, дом')}
+								placeholderTextColor={c.fillInk}
+								returnKeyType="done"
+								style={{ flex: 1, fontSize: fs.base, fontFamily: fontFamily(400), color: c.ink, padding: 0 }}
+							/>
+							<Text onPress={locate} style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.brandStrong }}>
+								{locating ? t('Ищем…') : t('Найти меня')}
+							</Text>
+						</View>
+						{locateError ? <Text style={{ fontSize: fs.sm, fontFamily: fontFamily(500), color: c.muted }}>{locateError}</Text> : null}
+					</View>
+				) : (
+					<View style={{ height: 48, borderRadius: 14, backgroundColor: c.card, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 }}>
+						<PinOutline size={20} color={c.brandStrong} />
+						<Text numberOfLines={1} style={{ flex: 1, fontSize: fs.base, fontFamily: fontFamily(400), color: c.ink }}>
+							{locating ? t('Определяем, где вы…') : point?.label}
+						</Text>
+						{locating ? null : (
+							<Text onPress={() => (setTyped(point?.address ?? ''), setTyping(true))} style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.brandStrong }}>
+								{t('Изменить')}
+							</Text>
+						)}
+					</View>
+				)}
 			</ScrollView>
 
 			<View
@@ -413,25 +484,6 @@ export default function ServiceNewScreen() {
 				</ModalSheet>
 			) : null}
 
-			{pickPoint ? (
-				<ModalSheet onClose={() => setPickPoint(false)}>
-					<Text style={{ fontSize: fs.xxl, fontFamily: fontFamily(700), color: c.ink }}>{t('Где искать мастера')}</Text>
-					{[
-						{ key: 'market', title: MARKET_LABEL, onPress: () => (setPoint({ ...MARKET_POINT, label: MARKET_LABEL }), setPickPoint(false)) },
-						{ key: 'gps', title: locating ? t('Определяем…') : t('Где я сейчас'), onPress: locate },
-					].map((option) => (
-						<Pressable
-							key={option.key}
-							onPress={option.onPress}
-							style={{ height: 52, borderRadius: 14, backgroundColor: c.surface, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 }}
-						>
-							<PinOutline size={20} color={c.brandStrong} />
-							<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(600), color: c.ink }}>{option.title}</Text>
-						</Pressable>
-					))}
-					{locateError ? <Text style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.danger }}>{locateError}</Text> : null}
-				</ModalSheet>
-			) : null}
 		</View>
 	)
 }

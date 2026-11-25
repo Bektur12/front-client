@@ -21,6 +21,9 @@ import { ChatIcon } from '@/components/icons'
 import { useVideoViewer } from '@/store/useVideoViewer'
 import { marketPlace } from '@/lib/shop-place'
 import { t } from '@/i18n'
+import { openSignIn } from '@/components/sign-in-prompt'
+import { DeliveryChoiceSheet } from '@/components/delivery-choice'
+import { goBack } from '@/lib/navigation'
 
 /**
  * Videos from the market, full screen (like reels): a video is a part for sale, swiping shows only videos.
@@ -39,7 +42,8 @@ function VideoFeed({ top, bottom }: { top: number; bottom: number }) {
 	const items = flattenPages(feed.data)
 	const [height, setHeight] = useState(0)
 	const [index, setIndex] = useState(0)
-	const [muted, setMuted] = useState(true)
+	// Sound on by default — the feed is opened by a tap, so browsers allow it too; the button turns it off.
+	const [muted, setMuted] = useState(false)
 	const focused = useIsFocused()
 	const listRef = useRef<FlatList<VideoFeedItem>>(null)
 
@@ -111,7 +115,7 @@ function VideoFeed({ top, bottom }: { top: number; bottom: number }) {
 
 			<View style={{ position: 'absolute', top: top + 8, left: 16, right: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
 				<Pressable accessibilityRole="button" accessibilityLabel={t('Назад')}
-					onPress={() => router.back()}
+					onPress={() => goBack()}
 					hitSlop={10}
 					style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}
 				>
@@ -122,7 +126,7 @@ function VideoFeed({ top, bottom }: { top: number; bottom: number }) {
 	)
 }
 
-/** One video of the feed: full screen, plays while active, the seller, the part, «Заказать» and «Доставка». */
+/** One video of the feed: full screen, plays while active, the seller, the part, «Написать» and «Доставка» (Яндекс или Ылдам). */
 function FeedPage({
 	item,
 	height,
@@ -149,7 +153,7 @@ function FeedPage({
 	const poster = resolveUrl(item.video.posterUrl)
 	const shop = item.shop
 	const openChat = useOpenChat()
-	// «Заказать» — the chat with the box about this part, «Хочу заказать …» already typed (a guest signs in first).
+	// «Написать» — the chat with the box about this part, «Хочу заказать …» already typed (a guest signs in first).
 	const order = () =>
 		signedIn
 			? openChat.mutate(
@@ -158,13 +162,15 @@ function FeedPage({
 						onSuccess: (chat) =>
 							router.push({
 								pathname: '/chat',
-								params: { chatId: String(chat.id), draft: t('Здравствуйте! Хочу заказать «{0}» за {1} сом.', item.title, priceDigits(item.price)) },
+								params: { chatId: String(chat.id), draft: item.price != null ? t('Здравствуйте! Хочу заказать «{0}» за {1} сом.', item.title, priceDigits(item.price)) : t('Здравствуйте! Хочу заказать «{0}». Какая цена?', item.title) },
 							}),
 					}
 				)
-			: router.push('/')
+			: openSignIn()
 	const meta = [marketPlace(shop.place), shop.replyMinutes != null ? t('отвечает за {0} мин', shop.replyMinutes) : null].filter(Boolean).join(' · ')
 	const [commenting, setCommenting] = useState(false)
+	// «Доставка» — сначала кем: Яндекс курьер или Ылдам
+	const [delivering, setDelivering] = useState(false)
 	const condition = CONDITION_CHIP[item.condition]
 	const description = [condition, item.fitsLabel].filter(Boolean).join('. ')
 
@@ -173,7 +179,7 @@ function FeedPage({
 			key: 'save',
 			label: item.favoritesCount ? String(item.favoritesCount) : null,
 			icon: <BookmarkIcon size={22} color={fixed.white} filled={item.isFavorite} />,
-			onPress: () => (signedIn ? favorite.mutate({ partId: item.partId, favorite: !item.isFavorite }) : router.push('/')),
+			onPress: () => (signedIn ? favorite.mutate({ partId: item.partId, favorite: !item.isFavorite }) : openSignIn()),
 		},
 		{
 			key: 'comments',
@@ -210,21 +216,11 @@ function FeedPage({
 			/>
 			<View style={{ height: top }} />
 
-			<View style={{ position: 'absolute', right: 12, bottom: bottom + 250, gap: 14, alignItems: 'center' }}>
-				{rail.map((button) => (
-					<Pressable key={button.key} onPress={button.onPress} hitSlop={6} style={{ alignItems: 'center', gap: 4 }}>
-						<View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
-							{button.icon}
-						</View>
-						{button.label ? <Text style={{ fontSize: fs.sm, fontFamily: fontFamily(700), color: fixed.white }}>{button.label}</Text> : null}
-					</Pressable>
-				))}
-			</View>
-
 			<View style={{ position: 'absolute', left: 16, right: 16, bottom: bottom + 16, gap: 8 }}>
 				<Pressable
 					onPress={() => router.push({ pathname: '/seller-profile', params: { id: String(shop.id) } })}
-					style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingRight: 64 }}
+					// As wide as its content, not the whole row — otherwise it lies under the sound button on the right.
+					style={{ flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start', maxWidth: '78%' }}
 				>
 					{shop.avatarUrl ? (
 						<Image source={{ uri: resolveUrl(shop.avatarUrl) }} style={{ width: 32, height: 32, borderRadius: 16 }} />
@@ -233,7 +229,7 @@ function FeedPage({
 							<Text style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: fixed.white }}>{shop.name.slice(0, 1).toUpperCase()}</Text>
 						</View>
 					)}
-					<View style={{ flex: 1 }}>
+					<View style={{ flexShrink: 1 }}>
 						<Text numberOfLines={1} style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: fixed.white }}>
 							{shop.name}
 						</Text>
@@ -249,7 +245,7 @@ function FeedPage({
 					</Text>
 				) : null}
 				<View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-					<Text style={{ fontSize: fs.hero, fontFamily: fontFamily(800), letterSpacing: -0.6, color: fixed.white }}>{t('{0} сом', priceDigits(item.price))}</Text>
+					<Text style={{ fontSize: fs.hero, fontFamily: fontFamily(800), letterSpacing: -0.6, color: fixed.white }}>{item.price != null ? t('{0} сом', priceDigits(item.price)) : t('Договорная')}</Text>
 					{condition ? (
 						<View style={{ height: 24, paddingHorizontal: 8, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center' }}>
 							<Text style={{ fontSize: fs.sm, fontFamily: fontFamily(700), color: fixed.white }}>{condition}</Text>
@@ -274,29 +270,42 @@ function FeedPage({
 						}}
 					>
 						<ChatIcon size={20} color={fixed.white} strokeWidth={2.2} />
-						<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Заказать')}</Text>
+						<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Написать')}</Text>
 					</Pressable>
-					{item.shipsToRegions ? (
-						<Pressable
-							onPress={() => (signedIn ? router.push({ pathname: '/delivery', params: { partId: String(item.partId) } }) : router.push('/'))}
-							style={{
-								flex: 1,
-								height: 52,
-								borderRadius: 14,
-								backgroundColor: fixed.white,
-								flexDirection: 'row',
-								alignItems: 'center',
-								justifyContent: 'center',
-								gap: 8,
-							}}
-						>
-							<TruckIcon size={20} color={c.ink} />
-							<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Доставка')}</Text>
-						</Pressable>
-					) : null}
+					{/* доставка у каждого товара, как в карточке */}
+					<Pressable
+						onPress={() => (signedIn ? setDelivering(true) : openSignIn())}
+						style={{
+							flex: 1,
+							height: 52,
+							borderRadius: 14,
+							backgroundColor: fixed.white,
+							flexDirection: 'row',
+							alignItems: 'center',
+							justifyContent: 'center',
+							gap: 8,
+						}}
+					>
+						{/* white button in both themes — dark label (the theme's ink is white in the dark theme) */}
+						<TruckIcon size={20} color={fixed.inkOnLight} />
+						<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.inkOnLight }}>{t('Доставка')}</Text>
+					</Pressable>
 				</View>
 			</View>
+			{/* After the bottom block: a long title makes it tall, and it must not take taps meant for these buttons. */}
+			<View style={{ position: 'absolute', right: 12, bottom: bottom + 250, gap: 14, alignItems: 'center' }}>
+				{rail.map((button) => (
+					<Pressable key={button.key} onPress={button.onPress} hitSlop={6} style={{ alignItems: 'center', gap: 4 }}>
+						<View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center' }}>
+							{button.icon}
+						</View>
+						{button.label ? <Text style={{ fontSize: fs.sm, fontFamily: fontFamily(700), color: fixed.white }}>{button.label}</Text> : null}
+					</Pressable>
+				))}
+			</View>
+
 			{commenting ? <CommentsSheet partId={item.partId} onClose={() => setCommenting(false)} /> : null}
+			{delivering ? <DeliveryChoiceSheet partId={item.partId} onClose={() => setDelivering(false)} /> : null}
 		</View>
 	)
 }

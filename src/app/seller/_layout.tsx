@@ -15,7 +15,7 @@ export default function SellerLayout() {
 
 	return (
 		<Tabs>
-			<TabSlot />
+			<TabSlot style={{ flex: 1 }} />
 
 			<TabBarContainer>
 				<TabTrigger name="requests" asChild>

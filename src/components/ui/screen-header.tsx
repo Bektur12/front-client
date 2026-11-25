@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
 import { ChevronLeftIcon, CloseIcon } from '@/components/icons'
 import { fontFamily, fs, useColors } from '@/theme'
 import { t } from '@/i18n'
+import { goBack } from '@/lib/navigation'
 
 /**
  * The one header of a pushed screen: ‹ back (or ✕ for a modal flow), the title, an optional right slot.
@@ -28,14 +28,15 @@ export function ScreenHeader({
 }) {
 	const c = useColors()
 	const insets = useSafeAreaInsets()
-	const back = onBack !== false && !onClose && (onBack || router.canGoBack())
+	// Always a way back — even on a screen opened from a push (then «Назад» leads home).
+	const back = onBack !== false && !onClose
 	return (
 		<View style={{ height: 52, marginTop: inset ? insets.top : 0, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 			{back ? (
 				<Pressable
 					accessibilityRole="button"
 					accessibilityLabel={t('Назад')}
-					onPress={onBack || (() => router.back())}
+					onPress={onBack || (() => goBack())}
 					hitSlop={12}
 					style={{ marginLeft: -4 }}
 				>

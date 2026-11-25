@@ -153,7 +153,7 @@ export function CallRow({ onCall, onChat, onRoute }: { onCall?: () => void; onCh
 				}}
 			>
 				<PhoneOutline size={20} color={c.ink} />
-				<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Позвонить')}</Text>
+				<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Позвонить')}</Text>
 			</Pressable>
 			<Pressable
 				onPress={onChat}
@@ -172,7 +172,7 @@ export function CallRow({ onCall, onChat, onRoute }: { onCall?: () => void; onCh
 				}}
 			>
 				<ChatBubble size={20} color={fixed.white} />
-				<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Написать')}</Text>
+				<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Написать')}</Text>
 			</Pressable>
 			{square(<RouteOutline size={22} color={c.brandStrong} />, onRoute)}
 		</View>

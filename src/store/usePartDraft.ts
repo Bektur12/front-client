@@ -34,11 +34,15 @@ export interface PartDraft {
 	categoryId?: number
 	condition: PartCondition
 	price: string
+	/** «Цена договорная» — no price, the buyer asks in the chat or by phone. */
+	priceNegotiable: boolean
 	quantity: number
 	oemNumber?: string
+	/** «Отправлю в регионы» — buyers get the «Доставка» button (Ылдам Экспресс picks it up from the box). */
+	shipsToRegions: boolean
 	fitments: DraftFitment[]
 	photos: DraftPhoto[]
-	set: (patch: Partial<Pick<PartDraft, 'title' | 'categoryId' | 'condition' | 'price' | 'quantity' | 'oemNumber'>>) => void
+	set: (patch: Partial<Pick<PartDraft, 'title' | 'categoryId' | 'condition' | 'price' | 'priceNegotiable' | 'quantity' | 'oemNumber' | 'shipsToRegions'>>) => void
 	addPhotos: (uris: string[]) => void
 	retryPhoto: (key: string) => void
 	removePhoto: (key: string) => void
@@ -58,8 +62,10 @@ const empty = {
 	categoryId: undefined,
 	condition: 'NEW' as PartCondition,
 	price: '',
+	priceNegotiable: false,
 	quantity: 1,
 	oemNumber: undefined,
+	shipsToRegions: true,
 	fitments: [],
 	photos: [],
 }
@@ -112,9 +118,11 @@ export const usePartDraft = create<PartDraft>((set, get) => {
 				categoryId: part.category?.id,
 				condition: part.condition ?? 'NEW',
 				price: part.price ? String(part.price) : '',
+				priceNegotiable: part.priceNegotiable,
 				// A draft starts in stock; a published part keeps 0 = «нет в наличии».
 				quantity: part.status === 'DRAFT' ? part.quantity || 1 : part.quantity,
 				oemNumber: part.oemNumber ?? undefined,
+				shipsToRegions: part.shipsToRegions,
 				fitments: part.fitments.map((f) => ({
 					brandId: f.brand.id,
 					modelId: f.modelId ?? undefined,
@@ -141,9 +149,11 @@ export function partBody(draft: PartDraft): PartInput {
 		title: draft.title.trim() || undefined,
 		categoryId: draft.categoryId,
 		condition: draft.condition,
-		price: price > 0 ? price : undefined,
+		price: !draft.priceNegotiable && price > 0 ? price : undefined,
+		priceNegotiable: draft.priceNegotiable,
 		quantity: draft.quantity,
 		oemNumber: draft.oemNumber || undefined,
+		shipsToRegions: draft.shipsToRegions,
 		mediaIds: draft.photos.flatMap((p) => (p.mediaId ? [p.mediaId] : [])),
 		fitments: draft.fitments.map(({ brandId, modelId, yearFrom, yearTo }) => ({ brandId, modelId, yearFrom, yearTo })),
 	}

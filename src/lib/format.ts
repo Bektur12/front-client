@@ -18,6 +18,11 @@ export function formatPrice(value: number | null | undefined) {
 	return t('{0}{1}сом', formatNumber(value), NBSP)
 }
 
+/** A published part's price: no price means the seller chose «Договорная». */
+export function formatPartPrice(value: number | null | undefined) {
+	return value === null || value === undefined ? t('Договорная') : formatPrice(value)
+}
+
 /** Russian plural: plural(24, ['запчасть', 'запчасти', 'запчастей']) → «запчасти». */
 export function plural(n: number, forms: readonly [one: string, few: string, many: string]) {
 	const mod10 = Math.abs(n) % 10

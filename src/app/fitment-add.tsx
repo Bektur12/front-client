@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Pressable, ScrollView, Text, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { router } from 'expo-router'
 import { Button, QueryErrorBanner, ScreenHeader } from '@/components/ui'
 import { CloseIcon } from '@/components/icons'
 import { SelectField, SelectSheet } from '@/components/select-sheet'
@@ -10,6 +9,7 @@ import { useBrands, useModels } from '@/api/directory'
 import type { CarModel } from '@/api/types'
 import { usePartDraft } from '@/store/usePartDraft'
 import { t } from '@/i18n'
+import { goBack } from '@/lib/navigation'
 
 const ALL_MODELS = -1
 
@@ -66,7 +66,7 @@ export default function FitmentAddScreen() {
 				})
 			}
 		}
-		router.back()
+		goBack()
 	}
 
 	return (

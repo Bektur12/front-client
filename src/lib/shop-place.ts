@@ -52,11 +52,16 @@ export function open2gis(place: { lat?: number | null; lng?: number | null; addr
 	if (place.lat != null && place.lng != null) {
 		Linking.openURL(`https://2gis.kg/bishkek/geo/${place.lng}%2C${place.lat}`)
 	} else if (place.address) {
-		Linking.openURL(`https://2gis.kg/bishkek/search/${encodeURIComponent(place.address)}`)
+		// «Дордой Моторс · Конт. 109» — 2GIS knows the market, not the box inside it.
+		const where = place.address.split(' · ')[0]
+		Linking.openURL(`https://2gis.kg/bishkek/search/${encodeURIComponent(where)}`)
 	}
 }
 
 /** The same for a card in the grid (ShopBriefDto: row / container, or the address). */
 export function briefPlace(shop: { onMarket: boolean; address?: string | null; rowLabel?: string | null; row?: string | null; container?: number | null }) {
+	// On a market without a box from the list (Дордой, Геология, or a place typed on Кудайберген) — the server's
+	// address: «Дордой Моторс · Конт. 109» / «Ряд К, конт. 5».
+	if (shop.onMarket && shop.container == null) return marketPlace(shop.address)
 	return shop.onMarket ? MARKET_PREFIX + formatPlace(shop) : (shop.address ?? '')
 }

@@ -23,9 +23,11 @@ export function useSetRole() {
 }
 
 export function useUpdateMe() {
+	const queryClient = useQueryClient()
 	return useMutation({
 		mutationFn: (body: UpdateMeBody) => apiFetch<Me>('/me', { method: 'PATCH', body }),
-		onSuccess: (me) => useSession.getState().setUser(me),
+		// The profile reads GET /me — show the new name, city and photo at once.
+		onSuccess: (me) => (useSession.getState().setUser(me), queryClient.setQueryData(meKeys.me, me)),
 	})
 }
 

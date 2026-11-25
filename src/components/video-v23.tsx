@@ -140,7 +140,7 @@ export function VideoTile({
 }: {
 	video: Video
 	title: string
-	price: number
+	price: number | null
 	place: string
 	playing: boolean
 	onPress: () => void
@@ -161,7 +161,7 @@ export function VideoTile({
 				<Text numberOfLines={2} style={{ fontSize: fs.xl, lineHeight: 23, fontFamily: fontFamily(700), color: fixed.white }}>
 					{title}
 				</Text>
-				<Text style={{ fontSize: fs.xxl, fontFamily: fontFamily(800), color: fixed.white }}>{t('{0} с', priceDigits(price))}</Text>
+				<Text style={{ fontSize: fs.xxl, fontFamily: fontFamily(800), color: fixed.white }}>{price != null ? t('{0} с', priceDigits(price)) : t('Договорная')}</Text>
 				<Text numberOfLines={1} style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: 'rgba(255,255,255,0.75)' }}>
 					{place}
 				</Text>

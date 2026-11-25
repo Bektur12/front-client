@@ -25,6 +25,10 @@ import { MediaViewer } from '@/components/media-viewer'
 import { photosAsMedia } from '@/components/media-strip'
 import { openShopRoute, shopPlace } from '@/lib/shop-place'
 import { t } from '@/i18n'
+import { formatOpenNow } from '@/lib/hours'
+import { openSignIn } from '@/components/sign-in-prompt'
+import { goBack } from '@/lib/navigation'
+import { YANDEX_LOGO, YLDAM_LOGO, useYandexCourier } from '@/components/courier-sheet'
 
 const CONDITION: Record<PartCondition, string> = { NEW: t('Новое'), USED: t('Б/У'), ON_ORDER: t('Под заказ') }
 
@@ -68,7 +72,9 @@ export default function PartScreen() {
 					{ shopId: shop.id, partId: part?.id },
 					{ onSuccess: (chat) => router.push({ pathname: '/chat', params: { chatId: String(chat.id) } }) }
 				)
-			: router.push('/'))
+			: openSignIn())
+
+	const yandex = useYandexCourier(shop)
 
 	const roundButton = { width: 40, height: 40, borderRadius: 20, backgroundColor: c.floating, alignItems: 'center', justifyContent: 'center' } as const
 
@@ -124,7 +130,7 @@ export default function PartScreen() {
 						justifyContent: 'space-between',
 					}}
 				>
-					<Pressable accessibilityRole="button" accessibilityLabel={t('Назад')} onPress={() => router.back()} style={roundButton}>
+					<Pressable accessibilityRole="button" accessibilityLabel={t('Назад')} onPress={() => goBack()} style={roundButton}>
 						<ChevronLeftIcon size={24} color={c.ink} />
 					</Pressable>
 					<View style={{ flexDirection: 'row', gap: 8 }}>
@@ -168,7 +174,7 @@ export default function PartScreen() {
 				) : (
 					<>
 						<Text style={{ fontSize: fs.display, fontFamily: fontFamily(800), letterSpacing: -0.28, color: c.ink }}>
-							{formatPrice(part?.price) || ' '}
+							{(part?.priceNegotiable ? t('Договорная') : formatPrice(part?.price)) || ' '}
 						</Text>
 						<Text style={{ fontSize: fs.xl, fontFamily: fontFamily(400), color: c.inkSecondary }}>{part?.title ?? ' '}</Text>
 					</>
@@ -219,6 +225,27 @@ export default function PartScreen() {
 					</View>
 				) : null}
 
+				{/* Доставка у каждого товара в наличии: Яндекс курьер — по Бишкеку сегодня, Ылдам — по Кыргызстану. */}
+				{part && shop && part.stockStatus === 'IN_STOCK' ? (
+					<View style={{ gap: 8 }}>
+						<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Доставка')}</Text>
+						<View style={{ flexDirection: 'row', gap: 8 }}>
+							<DeliveryTile
+								logo={YANDEX_LOGO}
+								title={t('Яндекс курьер')}
+								sub={yandex.opening ? t('Открываем…') : t('По Бишкеку · сегодня')}
+								onPress={() => (signedIn ? yandex.call() : openSignIn())}
+							/>
+							<DeliveryTile
+								logo={YLDAM_LOGO}
+								title={t('Ылдам Экспресс')}
+								sub={t('По Кыргызстану')}
+								onPress={() => (signedIn ? router.push({ pathname: '/delivery', params: { partId: String(part.id) } }) : openSignIn())}
+							/>
+						</View>
+					</View>
+				) : null}
+
 				{shop ? (
 					<Pressable
 						onPress={() => router.push({ pathname: '/seller-profile', params: { id: String(shop.id) } })}
@@ -246,6 +273,14 @@ export default function PartScreen() {
 							) : (
 								<Text numberOfLines={1} style={{ fontSize: fs.sm, fontFamily: fontFamily(400), color: c.muted }}>{shopPlace(shop)}</Text>
 							)}
+							{(() => {
+								const now = formatOpenNow(shop.open)
+								return (
+									<Text numberOfLines={1} style={{ fontSize: fs.sm, fontFamily: fontFamily(600), color: now.open ? c.success : c.danger }}>
+										{now.label}
+									</Text>
+								)
+							})()}
 						</View>
 						<Text style={{ fontSize: fs.h3, color: c.muted }}>›</Text>
 					</Pressable>
@@ -269,7 +304,7 @@ export default function PartScreen() {
 					paddingBottom: insets.bottom + 12,
 					borderTopWidth: 1,
 					borderTopColor: c.hairline,
-					backgroundColor: c.card,
+					backgroundColor: c.surface,
 					flexDirection: 'row',
 					gap: 8,
 				}}
@@ -280,7 +315,7 @@ export default function PartScreen() {
 					style={{ flex: 1, height: 54, paddingHorizontal: 10, borderRadius: 14, backgroundColor: c.fill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
 				>
 					<MapPinIcon size={20} color={c.ink} />
-					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{shop && !shop.location ? t('2ГИС') : t('Как пройти')}</Text>
+					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{shop && !shop.location ? t('2ГИС') : t('Как пройти')}</Text>
 				</Pressable>
 				<Pressable
 					disabled={!shop || openChat.isPending}
@@ -300,7 +335,7 @@ export default function PartScreen() {
 					}}
 				>
 					<ChatIcon size={20} color={fixed.white} />
-					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Написать')}</Text>
+					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: fixed.white }}>{t('Написать')}</Text>
 				</Pressable>
 				{/* WhatsApp at the right edge — «Я из приложения KUDAIBERDI. Меня интересует «…»» (only when the shop's number is visible). */}
 				{shop?.phone ? (
@@ -316,14 +351,19 @@ export default function PartScreen() {
 	)
 }
 
-/** «Похожие запчасти»: the same category (for the chosen car, if any), otherwise just other parts — two columns. */
+/**
+ * «Похожие запчасти»: the same category for the chosen car; too few of those — topped up with other parts for
+ * the same car, so the block is there under almost every part. Two columns.
+ */
 function Similar({ partId, categoryId, car }: { partId: number; categoryId?: number; car: Pick<PartFilters, 'carId' | 'brandId' | 'modelId'> }) {
 	const c = useColors()
 	const search = useSearchParts({ ...car, categoryId })
-	const items = flattenPages(search.data)
-		.filter((item) => item.id !== partId)
+	const sameCar = useSearchParts(car)
+	const seen = new Set([partId])
+	const items = [...flattenPages(search.data), ...flattenPages(sameCar.data)]
+		.filter((item) => !seen.has(item.id) && Boolean(seen.add(item.id)))
 		.slice(0, 6)
-	if (search.isLoading)
+	if (search.isLoading && sameCar.isLoading)
 		return (
 			<View style={{ gap: 12, paddingTop: 8 }}>
 				<Skeleton width={190} height={22} />
@@ -363,5 +403,21 @@ function PartBodySkeleton() {
 				</View>
 			</View>
 		</View>
+	)
+}
+
+/** A delivery service tile on the part card: logo, name, where and when. */
+function DeliveryTile({ logo, title, sub, onPress }: { logo: number; title: string; sub: string; onPress: () => void }) {
+	const c = useColors()
+	return (
+		<Pressable onPress={onPress} accessibilityRole="button" style={{ flex: 1 }}>
+			<View style={{ borderRadius: 16, backgroundColor: c.card, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+				<Image source={logo} contentFit="cover" style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: fixed.white }} />
+				<View style={{ flex: 1, gap: 2 }}>
+					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.ink }}>{title}</Text>
+					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.sm, fontFamily: fontFamily(500), color: c.muted }}>{sub}</Text>
+				</View>
+			</View>
+		</Pressable>
 	)
 }

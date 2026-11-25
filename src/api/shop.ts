@@ -13,7 +13,8 @@ type Schemas = components['schemas']
  * (BACKEND_QUESTIONS.md #1) — send strings until the schema is fixed.
  */
 type WithTimes<T> = Omit<T, 'openFrom' | 'openTo'> & { openFrom?: string; openTo?: string }
-export type CreateShopBody = WithTimes<Schemas['CreateShop']>
+/** `manualPlace` — «Ряд К, конт. 5» when the row is not in the list: the shop works at once, the place is shown as text. */
+export type CreateShopBody = WithTimes<Schemas['CreateShop']> & { manualPlace?: string; marketId?: number }
 export type UpdateShopBody = WithTimes<Schemas['UpdateShop']>
 
 export function useMyShop() {
@@ -62,6 +63,13 @@ export function useSetShopBrands() {
 	return useShopMutation((brandIds: number[]) => apiFetch<MyShop>('/my/shop/brands', { method: 'PUT', body: { brandIds } }))
 }
 
+/** Что продаёт: ходовая, оптика, двигатель… — по ним покупатель ищет на карте «марка + категория». */
+export function useSetShopCategories() {
+	return useShopMutation((categoryIds: number[]) =>
+		apiFetch<MyShop>('/my/shop/categories', { method: 'PUT', body: { categoryIds } })
+	)
+}
+
 // ─── Photos of the place [22]: up to 8, the first is the cover ──────────────
 
 function usePhotosMutation<TVariables>(mutationFn: (variables: TVariables) => Promise<ShopPhoto[]>) {
@@ -73,6 +81,13 @@ function usePhotosMutation<TVariables>(mutationFn: (variables: TVariables) => Pr
 			queryClient.invalidateQueries({ queryKey: shopKeys.my })
 		},
 	})
+}
+
+/** The banner buyers see on the shop profile — the photo becomes the first one. */
+export function useSetShopCover() {
+	return usePhotosMutation((mediaId: number) =>
+		apiFetch<ShopPhoto[]>(`/my/shop/photos/${mediaId}/cover`, { method: 'POST' })
+	)
 }
 
 export function useAddShopPhoto() {

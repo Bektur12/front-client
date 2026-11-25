@@ -257,3 +257,4 @@ export function WhatsAppIcon({ size, color }: IconProps) {
 		</Svg>
 	)
 }
+

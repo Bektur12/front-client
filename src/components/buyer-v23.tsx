@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { ActivityIndicator, Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native'
 import Svg, { Circle, Path, Rect } from 'react-native-svg'
-import { fixed, fontFamily, fs, sectionTitle, useColors } from '@/theme'
+import { fixed, fontFamily, fs, screenSectionTitle, sectionTitle, useColors } from '@/theme'
 import { t } from '@/i18n'
 
 // ─── Icons (24×24 strokes from the mockup) ──────────────────────────────────
@@ -167,11 +167,12 @@ export const DotsIcon = (p: V23IconProps) => (
  * `onClose` instead of `onBack` puts × on the right, as on «Найти запчасть» [04].
  */
 /** A section heading («Нужен мастер?», sentence case) with an optional link on the right. */
-export function Caps({ children, link, onLink }: { children: string; link?: string; onLink?: () => void }) {
+/** Section heading. `large` — the big bold heading of a main tab screen (Mashina.kg style). */
+export function Caps({ children, link, onLink, large }: { children: string; link?: string; onLink?: () => void; large?: boolean }) {
 	const c = useColors()
 	return (
 		<View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-			<Text style={{ flex: 1, ...sectionTitle, color: c.inkSecondary }}>
+			<Text style={large ? { flex: 1, ...screenSectionTitle, color: c.ink, marginTop: 6 } : { flex: 1, ...sectionTitle, color: c.inkSecondary }}>
 				{children}
 			</Text>
 			{link ? (

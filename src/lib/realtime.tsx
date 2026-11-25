@@ -9,7 +9,7 @@ import { ApiError, apiFetch } from '@/lib/api'
 import { CENTRIFUGO_URL } from '@/lib/env'
 import { queryClient } from '@/lib/query-client'
 import { useSession } from '@/store/useSession'
-import { chatKeys, requestKeys, serviceKeys } from '@/api/keys'
+import { chatKeys, incomingKeys, masterKeys, requestKeys, serviceKeys } from '@/api/keys'
 import { upsertChatRow, upsertMessage } from '@/api/chats'
 import type { Chat, ChatListItem, ChatListPage, ChatMessage, MessagePage, RealtimeToken, RequestStats, ServiceStats } from '@/api/types'
 import type { InfiniteData } from '@tanstack/react-query'
@@ -40,7 +40,16 @@ async function fetchConnectionToken() {
 	}
 }
 
-/** Personal channel events: `CHAT`, `UNREAD`, `REQUEST_STATS`, `SERVICE_REQUEST_STATS`. */
+/**
+ * A new request reached this seller / master — refresh «Новые» and the tab badge at once.
+ * Called on the inbox event and on a push that arrives while the app is open (it doesn't refresh lists by itself).
+ */
+export function refreshIncoming(type: string | undefined) {
+	if (type === 'NEW_REQUEST') queryClient.invalidateQueries({ queryKey: incomingKeys.all })
+	else if (type === 'NEW_SERVICE_REQUEST') queryClient.invalidateQueries({ queryKey: masterKeys.feedAll })
+}
+
+/** Personal channel events: `CHAT`, `UNREAD`, `REQUEST_STATS`, `SERVICE_REQUEST_STATS`, `NEW_REQUEST`, `NEW_SERVICE_REQUEST`. */
 function onInboxEvent({ type, payload }: RealtimeEvent) {
 	switch (type) {
 		case 'REQUEST_STATS': {
@@ -61,6 +70,10 @@ function onInboxEvent({ type, payload }: RealtimeEvent) {
 			queryClient.invalidateQueries({ queryKey: serviceKeys.my })
 			break
 		}
+		case 'NEW_REQUEST':
+		case 'NEW_SERVICE_REQUEST':
+			refreshIncoming(type)
+			break
 		case 'UNREAD':
 			queryClient.setQueryData(chatKeys.unread, payload)
 			break
