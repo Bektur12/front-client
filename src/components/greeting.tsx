@@ -3,7 +3,7 @@ import { fontFamily, fs, useColors } from '@/theme'
 import { t } from '@/i18n'
 
 /** Home header: «Салам, Айназик!», the car under it. */
-export function Greeting({ name, subtitle }: { name?: string | null; subtitle: string }) {
+export function Greeting({ name, subtitle }: { name?: string | null; subtitle?: string }) {
 	const c = useColors()
 	const first = name?.trim().split(/\s+/)[0]
 	return (
@@ -13,9 +13,11 @@ export function Greeting({ name, subtitle }: { name?: string | null; subtitle: s
 					{t('Салам')}
 					{first ? <Text style={{ color: c.brandStrong }}>{`, ${first}`}</Text> : null}!
 				</Text>
-				<Text numberOfLines={1} style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.muted }}>
-					{subtitle}
-				</Text>
+				{subtitle ? (
+					<Text numberOfLines={1} style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.muted }}>
+						{subtitle}
+					</Text>
+				) : null}
 			</View>
 		</View>
 	)

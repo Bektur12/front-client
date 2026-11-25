@@ -1,7 +1,9 @@
 // Иконки категорий запчастей — в стиле иконок меню: viewBox 24, обводка, скруглённые концы.
 import type { ReactNode } from 'react'
 import { View } from 'react-native'
-import { useColors } from '@/theme'
+import { fixed, useColors } from '@/theme'
+import { Image } from '@/components/ui/image'
+import { categoryImages } from '@/data/category-images'
 import Svg, { Circle, Path, Rect } from 'react-native-svg'
 
 const SHAPES: Record<string, ReactNode> = {
@@ -200,6 +202,11 @@ export function GridToggleIcon({ open, size = 26, color }: { open: boolean; size
  */
 export function CategoryBadge({ slug, size = 48 }: { slug: string; size?: number }) {
 	const c = useColors()
+	const picture = categoryImages[slug]
+	if (picture) {
+		// a real picture of the part on a light square — light in both themes, like brand logos
+		return <Image source={picture} contentFit="cover" transition={0} style={{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: fixed.white }} />
+	}
 	return (
 		<View style={{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: c.card, alignItems: 'center', justifyContent: 'center' }}>
 			<CategoryIcon slug={slug} size={size * 0.56} color={c.ink} strokeWidth={1.8} />

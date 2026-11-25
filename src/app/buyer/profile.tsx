@@ -5,9 +5,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router } from 'expo-router'
 import { API_URL } from '@/lib/env'
 import { BottomSheet, QueryErrorBanner, ScreenHeader, SettingsRow, Toggle, undoToast } from '@/components/ui'
-import { CloseIcon, HeartIcon, ProfileIcon, RequestsIcon } from '@/components/icons'
+import { CloseIcon, ProfileIcon } from '@/components/icons'
 import { BrandLogo } from '@/components/ui/brand'
-import { BellIcon, Caps, ChevronIcon, GlobeIcon, HelpIcon, PlusThinIcon } from '@/components/buyer-v23'
+import { Caps, ChevronIcon, PlusThinIcon } from '@/components/buyer-v23'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
 import { resolveUrl } from '@/lib/api'
 import { formatE164 } from '@/lib/phone'
@@ -18,6 +18,8 @@ import { openSupport } from '@/lib/support'
 import { t } from '@/i18n'
 import { SignInPrompt } from '@/components/sign-in-prompt'
 import { useSignedIn } from '@/api/catalog'
+import { RecentlyViewed } from '@/components/recently-viewed'
+import { PictureIcon } from '@/components/picture-icon'
 
 /** «Помощь в WhatsApp» — the support number from the build config (digits, e.g. 996555000000). */
 
@@ -132,9 +134,9 @@ function BuyerProfileScreen() {
 
 				<View style={{ height: 4 }} />
 				<View style={{ borderRadius: 18, backgroundColor: c.card, padding: 6 }}>
-					<MenuRow icon={<RequestsIcon size={22} color={c.ink} />} label={t('Мои запросы')} onPress={() => router.push('/my-requests')} />
-					<MenuRow icon={<HeartIcon size={22} color={c.ink} />} label={t('Избранное')} onPress={() => router.push('/favorites')} />
-					<MenuRow icon={<GlobeIcon size={22} color={c.ink} />} label={t('Язык')}>
+					<MenuRow icon={<PictureIcon name="requests" />} label={t('Мои запросы')} onPress={() => router.push('/my-requests')} />
+					<MenuRow icon={<PictureIcon name="favorites" />} label={t('Избранное')} onPress={() => router.push('/favorites')} />
+					<MenuRow icon={<PictureIcon name="language" />} label={t('Язык')}>
 						<View style={{ height: 34, borderRadius: 17, backgroundColor: c.card, borderWidth: 1.5, borderColor: c.border, flexDirection: 'row', padding: 2 }}>
 							{(['ru', 'ky'] as const).map((value) => {
 								const active = lang === value
@@ -150,13 +152,15 @@ function BuyerProfileScreen() {
 							})}
 						</View>
 					</MenuRow>
-					<MenuRow icon={<BellIcon size={22} color={c.ink} />} label={t('Уведомления')} onPress={() => setNotifications(true)} />
+					<MenuRow icon={<PictureIcon name="notifications" />} label={t('Уведомления')} onPress={() => setNotifications(true)} />
 					<MenuRow
-						icon={<HelpIcon size={22} color={c.ink} />}
+						icon={<PictureIcon name="help" />}
 						label={t('Помощь в WhatsApp')}
 						onPress={openSupport}
 					/>
 				</View>
+				{/* «Недавно смотрели» — переехало сюда с главной, чтобы главная была короче. */}
+				<RecentlyViewed />
 				{/* Not in the mockup, but without it there is no way out of the account. */}
 				<Text
 					onPress={() => useSession.getState().signOut()}
@@ -182,7 +186,8 @@ function MenuRow({ icon, label, onPress, children }: { icon: ReactNode; label: s
 	const c = useColors()
 	return (
 		<Pressable onPress={onPress} disabled={!onPress} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }}>
-			<View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center' }}>{icon}</View>
+			{/* 3D icon without a backing square — it has its own shape and colour */}
+			<View style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}>{icon}</View>
 			<Text style={{ flex: 1, fontSize: fs.lg, fontFamily: fontFamily(600), color: c.ink }}>{label}</Text>
 			{children ?? <ChevronIcon size={20} color={c.chevron} />}
 		</Pressable>
