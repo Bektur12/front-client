@@ -1,6 +1,7 @@
 // Buyer's catalog [27–30]: part search, part card, shop profile, favorites.
 import { keepPreviousData, useInfiniteQuery, type InfiniteData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '@/lib/api'
+import { haptic } from '@/lib/haptics'
 import { useSession } from '@/store/useSession'
 import { catalogKeys, meKeys, shopKeys, videoKeys } from './keys'
 import { cursorPaging } from './pagination'
@@ -65,6 +66,8 @@ export function useTogglePartFavorite(id: number) {
 		mutationFn: (favorite: boolean) =>
 			apiFetch<void>(`/parts/${id}/favorite`, { method: favorite ? 'PUT' : 'DELETE' }),
 		onMutate: (favorite) => {
+			// ♥ — лёгкий отклик пальцу сразу, не дожидаясь сервера
+			haptic.tap()
 			queryClient.setQueriesData<PartDetail>({ queryKey: ['catalog', 'detail', id] }, (part) =>
 				part ? { ...part, isFavorite: favorite } : part
 			)
@@ -122,6 +125,8 @@ export function useToggleShopFavorite(id: number) {
 	return useMutation({
 		mutationFn: (favorite: boolean) => apiFetch<void>(`/shops/${id}/favorite`, { method: favorite ? 'PUT' : 'DELETE' }),
 		onMutate: (favorite) => {
+			// ♥ — лёгкий отклик пальцу сразу, не дожидаясь сервера
+			haptic.tap()
 			queryClient.setQueryData<ShopPublic>(shopKeys.public(id), (shop) => (shop ? { ...shop, isFavorite: favorite } : shop))
 		},
 		onSettled: () => {

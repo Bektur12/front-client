@@ -204,7 +204,7 @@ function YldamForm({ shop, onDone }: { shop: Shop; onDone: () => void }) {
 
 	return (
 		<>
-			<ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+			<ScrollView keyboardDismissMode="on-drag" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 12, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 				<Field label={t('Куда везти')}>
 					<View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
 						{regions.map((item) => {

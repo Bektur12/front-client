@@ -25,7 +25,8 @@ import { goBack } from '@/lib/navigation'
 export default function SellerAnswerScreen() {
 	const c = useColors()
 	const insets = useSafeAreaInsets()
-	const params = useLocalSearchParams<{ id: string; voice?: string }>()
+	// focus=price — пришли с «Есть» на карточке Live Activity: курсор сразу в цене
+	const params = useLocalSearchParams<{ id: string; voice?: string; focus?: string }>()
 	const id = Number(params.id)
 	const request = useIncomingRequest(id)
 	const markSeen = useMarkSeen()
@@ -93,7 +94,7 @@ export default function SellerAnswerScreen() {
 				style={{ position: 'absolute', top: insets.top + 12, left: 0, right: 0, bottom: 0, justifyContent: 'flex-end' }}
 			>
 				<View style={{ flexShrink: 1, backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
-					<ScrollView
+					<ScrollView keyboardDismissMode="on-drag"
 						bounces={false}
 						keyboardShouldPersistTaps="handled"
 						contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 16, paddingBottom: Math.max(28, insets.bottom + 12), gap: 12 }}
@@ -162,6 +163,7 @@ export default function SellerAnswerScreen() {
 							}}
 						>
 							<TextInput inputAccessoryViewID={KEYBOARD_DONE}
+								autoFocus={params.focus === 'price'}
 								value={negotiable ? '' : amount > 0 ? formatNumber(amount) : price}
 								editable={!negotiable}
 								onChangeText={(text) => setPrice(text.replace(/\D/g, '').slice(0, 7))}

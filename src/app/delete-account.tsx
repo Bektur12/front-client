@@ -51,7 +51,7 @@ export default function DeleteAccountScreen() {
 	return (
 		<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
 			<ScreenHeader title={t('Удалить аккаунт')} />
-			<ScrollView contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+			<ScrollView keyboardDismissMode="on-drag" contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
 				<View style={{ borderRadius: 16, backgroundColor: c.card, padding: 16, gap: 8 }}>
 					<Text style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{t('Что удалится')}</Text>
 					<Text style={{ fontSize: fs.base, lineHeight: 23, fontFamily: fontFamily(400), color: c.inkSecondary }}>{t('Профиль, номер телефона, машины, избранное, запросы и заявки. Магазин и профиль мастера пропадут из поиска, сообщения в чатах будут скрыты. Через 30 дней данные сотрутся навсегда.')}</Text>

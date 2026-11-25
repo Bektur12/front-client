@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { Alert, Text, View } from 'react-native'
+import { Alert, Platform, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Button } from '@/components/ui'
@@ -22,6 +22,11 @@ export function openSignIn() {
  */
 export function requireSignIn(why = t('Чтобы отправить запрос продавцам, войдите по номеру телефона.')) {
 	if (useSession.getState().status === 'authed') return true
+	// В браузере Alert не показывается вовсе — кнопка молчала; там сразу на экран входа.
+	if (Platform.OS === 'web') {
+		openSignIn()
+		return false
+	}
 	Alert.alert(t('Нужно войти'), why, [
 		{ text: t('Отмена'), style: 'cancel' },
 		{ text: t('Войти'), onPress: openSignIn },

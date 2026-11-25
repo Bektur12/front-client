@@ -44,3 +44,4 @@ example
 
 # recovery scratch
 .recovery-probe.txt
+build-release/

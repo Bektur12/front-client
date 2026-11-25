@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import { Keyboard, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
@@ -15,6 +15,7 @@ import { useBrands, useCategories } from '@/api/directory'
 import { CategoryChips } from '@/components/category-chips'
 import { fixed, fontFamily, fs, LightTheme, raw, useColors } from '@/theme'
 import { t } from '@/i18n'
+import { KEYBOARD_DONE } from '@/components/keyboard-done'
 import { goBack } from '@/lib/navigation'
 import { mapPalette } from '@/lib/map-palette'
 
@@ -78,6 +79,7 @@ function MarketMapContent({ embedded, header }: { embedded: boolean; header?: Re
 	const select = (containerId: number) => {
 		setSelectedId(containerId)
 		setFocused(false)
+		Keyboard.dismiss()
 		const found = findContainer(scheme, containerId)
 		if (found) mapRef.current?.focusOn(schemaToGeo(found.container.x, found.container.y), 19)
 	}
@@ -88,6 +90,7 @@ function MarketMapContent({ embedded, header }: { embedded: boolean; header?: Re
 		} else {
 			setQuery(hit.rowLabel)
 			setFocused(false)
+			Keyboard.dismiss()
 			setSelectedId(null)
 			mapRef.current?.focusOnRow(hit.rowId, 18.2)
 		}
@@ -97,6 +100,7 @@ function MarketMapContent({ embedded, header }: { embedded: boolean; header?: Re
 		setCategoryId(undefined)
 		setSelectedId(null)
 		setFocused(false)
+		Keyboard.dismiss()
 		if (id) setQuery('')
 		showMarket()
 	}
@@ -148,7 +152,7 @@ function MarketMapContent({ embedded, header }: { embedded: boolean; header?: Re
 								<BackIcon size={22} color={c.ink} />
 							</Pressable>
 						)}
-						<TextInput
+						<TextInput inputAccessoryViewID={KEYBOARD_DONE}
 							value={query}
 							onChangeText={setQuery}
 							onFocus={() => setFocused(true)}
@@ -214,7 +218,7 @@ function MarketMapContent({ embedded, header }: { embedded: boolean; header?: Re
 						</Floating>
 					</View>
 				) : (
-					<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 12 }} keyboardShouldPersistTaps="handled">
+					<ScrollView keyboardDismissMode="on-drag" horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 12 }} keyboardShouldPersistTaps="handled">
 						{popular.map((b) => {
 							const on = b.id === brandId
 							return (

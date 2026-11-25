@@ -101,7 +101,7 @@ export default function MasterAnswerScreen() {
 			<Pressable style={{ flex: 1 }} onPress={close} />
 			{/* Scrolls when the keyboard leaves no room — the client's voice and photos stay reachable. */}
 			<View style={{ flexShrink: 1, backgroundColor: c.card, borderTopLeftRadius: 24, borderTopRightRadius: 24 }}>
-				<ScrollView
+				<ScrollView keyboardDismissMode="on-drag"
 					bounces={false}
 					keyboardShouldPersistTaps="handled"
 					contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 16, paddingBottom: 28 + insets.bottom, gap: 12 }}
@@ -204,7 +204,7 @@ export default function MasterAnswerScreen() {
 					</View>
 
 					{when !== 'NOW' ? (
-						<ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8 }}>
+						<ScrollView keyboardDismissMode="on-drag" horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8 }}>
 							{hoursFor(when, openedAt).map((h) => {
 								const selected = hour[when] === h
 								return (

@@ -5393,6 +5393,11 @@ export interface components {
             lat: number | null;
             /** Format: double */
             lng: number | null;
+            /**
+             * Format: int32
+             * @description Медиана ответа на запросы за 30 дней, минут; null — ответов меньше трёх
+             */
+            replyMinutes: number | null;
         };
         RolePermissionsRequest: {
             permissions: ("DASHBOARD_VIEW" | "EXPORT_EXCEL" | "SELLERS_VIEW" | "SELLERS_VERIFY" | "SELLERS_BLOCK" | "DISPUTES_RESOLVE" | "MASTERS_VIEW" | "MASTERS_VERIFY" | "MASTERS_BLOCK" | "MASTERS_CREATE" | "MARKET_VIEW" | "MARKET_EDIT" | "MARKET_MAP_PUBLISH" | "TENANTS_IMPORT" | "REQUESTS_VIEW" | "REQUESTS_MANAGE" | "COMPLAINTS_VIEW" | "COMPLAINTS_RESOLVE" | "CONTENT_REMOVE" | "SELLER_WARN" | "DICTIONARIES_VIEW" | "DICTIONARIES_EDIT" | "BROADCASTS_VIEW" | "BROADCASTS_SEND" | "USERS_VIEW" | "USERS_BLOCK" | "PII_VIEW" | "MESSAGE_USERS" | "AUDIT_VIEW" | "STAFF_MANAGE")[];
@@ -7569,6 +7574,8 @@ export interface components {
             /** Format: double */
             lng: number | null;
             partCategories: components["schemas"]["ShopPartCategory"][];
+            /** Format: int32 */
+            replyMinutes: number | null;
         };
         ServiceRecipientCounts: {
             /** Format: int64 */
@@ -7770,6 +7777,8 @@ export interface components {
             /** Format: int32 */
             recipients: number;
             brand: string;
+            /** @description Продавцов марки на рынке нет — запрос получат все продавцы рынка */
+            anyBrand: boolean;
         };
         Token: {
             token: string;

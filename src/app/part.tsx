@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ReplySpeedBadge } from '@/components/reply-speed'
 import { Pressable, ScrollView, Share, Text, View, useWindowDimensions } from 'react-native'
 import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -184,7 +185,8 @@ export default function PartScreen() {
 					<View
 						style={{
 							borderRadius: 12,
-							backgroundColor: part.fit.fits ? c.successTint : c.dangerTint,
+							// «Не подходит» — серым, а не красным: это не ошибка, а подсказка. Красный — только «Нет в наличии».
+							backgroundColor: part.fit.fits ? c.successTint : c.card,
 							paddingVertical: 10,
 							paddingHorizontal: 12,
 							flexDirection: 'row',
@@ -197,10 +199,25 @@ export default function PartScreen() {
 						) : (
 							<View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: fixed.white, borderWidth: 1, borderColor: c.border }} />
 						)}
-						<Text style={{ flex: 1, fontSize: fs.md, fontFamily: fontFamily(400), color: part.fit.fits ? c.successInk : c.danger }}>
-							<Text style={{ fontFamily: fontFamily(700) }}>{part.fit.fits ? t('Подходит') : t('Не подходит')}</Text>{' '}{t('к вашей')}{' '}
-							{part.fit.carLabel}
-						</Text>
+						{part.fit.fits ? (
+							<Text style={{ flex: 1, fontSize: fs.md, fontFamily: fontFamily(400), color: c.successInk }}>
+								<Text style={{ fontFamily: fontFamily(700) }}>{t('Подходит')}</Text>{' '}{t('к вашей')}{' '}
+								{part.fit.carLabel}
+							</Text>
+						) : (
+							<Text style={{ flex: 1, fontSize: fs.md, lineHeight: 20, fontFamily: fontFamily(400), color: c.inkSecondary }}>
+								{part.fitments.length ? (
+									<>
+										<Text style={{ fontFamily: fontFamily(700), color: c.ink }}>{t('Для {0}', part.fitments.slice(0, 2).map((f) => f.label).join(', '))}
+											{part.fitments.length > 2 ? t(' и ещё {0}', part.fitments.length - 2) : ''}</Text>
+										{' · '}
+										{t('у вас {0}', part.fit.carLabel)}
+									</>
+								) : (
+									t('Продавец не указал, подходит ли к вашей {0}', part.fit.carLabel)
+								)}
+							</Text>
+						)}
 						{part.fit.fits ? <CheckIcon size={18} color={c.success} strokeWidth={3} /> : null}
 					</View>
 				) : part?.fitments.length ? (
@@ -273,6 +290,7 @@ export default function PartScreen() {
 							) : (
 								<Text numberOfLines={1} style={{ fontSize: fs.sm, fontFamily: fontFamily(400), color: c.muted }}>{shopPlace(shop)}</Text>
 							)}
+							<ReplySpeedBadge minutes={shop.replyMinutes} />
 							{(() => {
 								const now = formatOpenNow(shop.open)
 								return (
@@ -312,17 +330,17 @@ export default function PartScreen() {
 				<Pressable
 					disabled={!shop}
 					onPress={() => shop && openShopRoute(shop)}
-					style={{ flex: 1, height: 54, paddingHorizontal: 10, borderRadius: 14, backgroundColor: c.fill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+					style={{ flex: 1, height: 54, paddingHorizontal: 8, borderRadius: 14, backgroundColor: c.fill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
 				>
-					<MapPinIcon size={20} color={c.ink} />
-					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>{shop && !shop.location ? t('2ГИС') : t('Как пройти')}</Text>
+					<MapPinIcon size={18} color={c.ink} />
+					<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.md, fontFamily: fontFamily(700), color: c.ink }}>{shop && !shop.location ? t('2ГИС') : t('Маршрут')}</Text>
 				</Pressable>
 				<Pressable
 					disabled={!shop || openChat.isPending}
 					onPress={write}
 					style={{
-						// the main action — wider, nearer the thumb
-						flex: 1.6,
+						// the main action — wider, nearer the thumb (1.3: «Маршрут» рядом не обрезается на узких экранах)
+						flex: 1.3,
 						height: 54,
 						paddingHorizontal: 10,
 						borderRadius: 14,

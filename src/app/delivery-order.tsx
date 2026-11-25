@@ -122,7 +122,7 @@ function BuyerSide({ order, bottom }: { order: DeliveryOrder; bottom: number }) 
 
 	return (
 		<>
-			<ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} showsVerticalScrollIndicator={false}>
+			<ScrollView keyboardDismissMode="on-drag" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} showsVerticalScrollIndicator={false}>
 				<LinearGradient
 					colors={order.status === 'CANCELLED' ? fixed.cancelledGradient : fixed.brandGradient}
 					start={{ x: 0.25, y: 0 }}
@@ -280,7 +280,7 @@ function ShopSide({ order, bottom }: { order: DeliveryOrder; bottom: number }) {
 
 	return (
 		<>
-			<ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+			<ScrollView keyboardDismissMode="on-drag" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 				<View style={{ borderRadius: 18, backgroundColor: c.warningSoft, padding: 16, gap: 4 }}>
 					<Text style={{ fontSize: fs.md, fontFamily: fontFamily(700), color: c.warningInk }}>
 						{t('{0} · в {1}', caption, toRegion(destination))}

@@ -1,5 +1,6 @@
 // Seller's incoming requests [11, 12, 14].
 import { useRef } from 'react'
+import { liveActivity } from '../../modules/kudaiberdi-live-activity'
 import { type InfiniteData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiFetch, newIdempotencyKey } from '@/lib/api'
 import { incomingKeys } from './keys'
@@ -63,6 +64,8 @@ export function useReplyToRequest(id: number) {
 		},
 		onSuccess: () => {
 			idempotencyKey.current = null
+			// ответил в приложении — карточка запроса на экране блокировки (Live Activity) больше не нужна
+			liveActivity.end(id)
 		},
 		onSettled: () => queryClient.invalidateQueries({ queryKey: incomingKeys.all }),
 	})

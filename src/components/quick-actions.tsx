@@ -2,7 +2,7 @@ import type { ComponentType } from 'react'
 import { Pressable, Text, View } from 'react-native'
 import { router } from 'expo-router'
 import { ModalSheet } from '@/components/master-v23'
-import { ChevronIcon, LoupeIcon, TowIcon, WrenchIcon } from '@/components/buyer-v23'
+import { ChevronIcon, LoupeIcon, WrenchIcon } from '@/components/buyer-v23'
 import { MarketIcon } from '@/components/icons'
 import { requireSignIn } from '@/components/sign-in-prompt'
 import { fixed, fontFamily, fs, useColors } from '@/theme'
@@ -12,7 +12,6 @@ type Icon = ComponentType<{ size?: number; color: string; strokeWidth?: number }
 
 /**
  * Меню «＋» из нижней навигации: главные действия покупателя — одной строкой каждое, без лишнего.
- * «Сломалась машина» — красным: это срочно, и справочник работает даже без интернета.
  */
 export function QuickActionsSheet({ onClose }: { onClose: () => void }) {
 	// Окно закрывается, потом переход: «Нужно войти» поверх закрывающегося окна iOS не показывает.
@@ -41,13 +40,7 @@ export function QuickActionsSheet({ onClose }: { onClose: () => void }) {
 					sub={t('Найти контейнер и пройти к нему')}
 					onPress={() => run(() => router.navigate('/buyer/market'))}
 				/>
-				<Action
-					icon={TowIcon}
-					title={t('Сломалась машина')}
-					sub={t('Эвакуатор и мастера рядом — даже без интернета')}
-					danger
-					onPress={() => run(() => router.push('/roadside'))}
-				/>
+				{/* «Сломалась машина» (/roadside) скрыта до готовности — экран и справочник остаются в коде */}
 			</View>
 		</ModalSheet>
 	)

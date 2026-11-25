@@ -84,7 +84,7 @@ export default function DeliveryScreen() {
 		<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
 			<ScreenHeader title={t('Доставка')} right={<YellowChip label={tariffs.data?.courierName ?? t('Ылдам Экспресс')} height={28} />} />
 
-			<ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+			<ScrollView keyboardDismissMode="on-drag" contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16, gap: 10 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 				{part ? (
 					<View style={{ borderRadius: 16, backgroundColor: c.card, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
 						<View style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: fixed.media, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
