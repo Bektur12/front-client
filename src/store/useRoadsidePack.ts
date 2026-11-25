@@ -52,7 +52,8 @@ export const useRoadsidePack = create<RoadsidePackState>((set, get) => ({
 	sync: (options = {}) => {
 		syncing ??= (async () => {
 			await get().load()
-			if (useSession.getState().status !== 'authed') return
+			// A guest gets the directory too — on a pass a stranded driver may not have signed in. Not while booting.
+			if (useSession.getState().status === 'booting') return
 			const { pack, checkedAt } = get()
 			if (!options.force && pack && checkedAt && Date.now() - checkedAt < CHECK_EVERY_MS) return
 			set({ syncing: true })

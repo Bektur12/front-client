@@ -191,7 +191,7 @@ export function ChatConversation({ chatId, mySide, header, pinned, onAction, dra
 				style={{ marginHorizontal: 16, marginTop: 12 }}
 			/>
 
-			<FlatList
+			<FlatList keyboardDismissMode="interactive"
 				inverted
 				data={messages}
 				keyExtractor={(m) => String(m.clientId ?? m.id)}
@@ -231,7 +231,7 @@ export function ChatConversation({ chatId, mySide, header, pinned, onAction, dra
 			/>
 
 			{replies.length && canWrite ? (
-				<ScrollView
+				<ScrollView keyboardDismissMode="interactive"
 					horizontal
 					showsHorizontalScrollIndicator={false}
 					keyboardShouldPersistTaps="handled"

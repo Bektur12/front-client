@@ -23,9 +23,10 @@ import { useSession } from '@/store/useSession'
 // ─── Sending [06, 06б, 31] ───────────────────────────────────────────────────
 
 /** «Колодки», «Стойки», «Фара» — top hints for the car [06]. */
-export function useRequestHints(carId: number | undefined, limit = 3) {
+export function useRequestHints(carId: number | undefined, limit = 3, enabled = true) {
 	return useQuery({
-		queryKey: requestKeys.hints(carId),
+		queryKey: requestKeys.hints(carId, limit),
+		enabled,
 		queryFn: ({ signal }) => apiFetch<PartHint[]>('/requests/hints', { query: { carId, limit }, signal }),
 		staleTime: 5 * 60_000,
 	})

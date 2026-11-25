@@ -1,10 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { ReplySpeedBadge } from '@/components/reply-speed'
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from 'react-native'
 import { Image } from '@/components/ui/image'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { router, useLocalSearchParams } from 'expo-router'
 import { BottomSheet, Button, PlacePlate, QueryErrorBanner, ScreenHeader, SkeletonOfferCard, SkeletonRepeat, SkeletonStatus, toast } from '@/components/ui'
 import { BrandLogo } from '@/components/ui/brand'
+import { RequestProgress } from '@/components/request-progress'
 import { BubbleIcon, CallIcon, ChevronIcon, CrossIcon, LoupeIcon, RouteIcon, TickIcon, priceDigits, replyChips } from '@/components/buyer-v23'
 import { VoicePlayer } from '@/components/voice'
 import { MediaStrip, photosAsMedia } from '@/components/media-strip'
@@ -74,7 +76,6 @@ export default function RequestScreen() {
 					: a.createdAt.localeCompare(b.createdAt)
 		)
 	const askedCount = counts?.delivered ?? detail?.recipientsCount ?? 0
-	const answered = counts ? counts.have + counts.notHave : have.length
 
 	const title = detail?.text ?? ' '
 	// Pinned under the thumb: «Нашли запчасть?» once someone has it, «Продлить» when the search is about to end.
@@ -111,9 +112,6 @@ export default function RequestScreen() {
 										? t('Ищем ещё {0} {1}', left, plural(left, [t('минуту'), t('минуты'), t('минут')]))
 										: t('Время вышло')}
 							</Text>
-							<Text style={{ fontSize: fs.md, fontFamily: fontFamily(400), color: c.muted }}>
-								{t('Спросили {0} {1} · ответили {2}', askedCount, plural(askedCount, [t('продавца'), t('продавцов'), t('продавцов')]), answered)}
-							</Text>
 						</View>
 						{!closed && detail.canExtend ? (
 							<Pressable
@@ -133,6 +131,17 @@ export default function RequestScreen() {
 					</View>
 				) : request.isLoading ? (
 					<SkeletonStatus />
+				) : null}
+
+				{/* Живой статус: отправили → посмотрели → есть, и вилка цен — решение за секунды. */}
+				{detail ? (
+					<RequestProgress
+						sent={askedCount}
+						seen={Math.max(counts?.seen ?? detail.seenCount, have.length)}
+						have={have.length}
+						active={active}
+						prices={have.flatMap((reply) => (reply.price != null && reply.price > 1 && !reply.priceNegotiable ? [reply.price] : []))}
+					/>
 				) : null}
 				{extend.error ? <Text style={{ fontSize: fs.md, fontFamily: fontFamily(500), color: c.danger }}>{extend.error.message}</Text> : null}
 
@@ -304,6 +313,7 @@ function ReplyCard({ reply, best }: { reply: Reply; best: boolean }) {
 					<Text numberOfLines={1} style={{ fontSize: fs.lg, fontFamily: fontFamily(700), color: c.ink }}>
 						{shop.name}
 					</Text>
+					<ReplySpeedBadge minutes={shop.replyMinutes} />
 					{/* Where to go — the place plate; a shop off the market — its address. */}
 					{shop.location ? (
 						<PlacePlate row={shop.location.rowCode} box={shop.location.number} walk={reply.walkMinutes} />

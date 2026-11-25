@@ -25,7 +25,7 @@ export const requestKeys = {
 	detail: (id: number) => ['requests', 'detail', id] as const,
 	replies: (id: number) => ['requests', 'detail', id, 'replies'] as const,
 	stats: (id: number) => ['requests', 'detail', id, 'stats'] as const,
-	hints: (carId: number | undefined) => ['requests', 'hints', carId] as const,
+	hints: (carId: number | undefined, limit?: number) => ['requests', 'hints', carId, limit] as const,
 	estimate: (params: object) => ['requests', 'estimate', params] as const,
 }
 

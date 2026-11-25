@@ -68,7 +68,7 @@ export function CommentsSheet({ partId, onClose }: { partId: number; onClose: ()
 				{t('Комментарии')}{total ? ` · ${total}` : ''}
 			</Text>
 
-			<ScrollView
+			<ScrollView keyboardDismissMode="on-drag"
 				style={{ maxHeight: height * 0.45 }}
 				contentContainerStyle={{ gap: 14, paddingVertical: 4 }}
 				keyboardShouldPersistTaps="handled"

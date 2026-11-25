@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { ReplySpeedBadge } from '@/components/reply-speed'
 import { Linking, Pressable, ScrollView, Share, Text, TextInput, View, useWindowDimensions } from 'react-native'
 import { onNearEnd } from '@/lib/scroll'
 import { Image } from '@/components/ui/image'
@@ -147,6 +148,7 @@ export default function SellerProfileForBuyerScreen() {
 									: null
 								: ' '}
 						</Text>
+						{shop?.replyMinutes != null ? <View style={{ paddingTop: 6 }}><ReplySpeedBadge minutes={shop.replyMinutes} /></View> : null}
 					</View>
 					)}
 

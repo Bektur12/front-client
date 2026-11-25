@@ -26,6 +26,7 @@ import { ToastHost } from '@/components/ui/toast'
 import { PushPrimer } from '@/components/push-primer'
 import { KeyboardDoneBar } from '@/components/keyboard-done'
 import { IntroSplash } from '@/components/intro-splash'
+import { UpdatePrompt } from '@/components/update-prompt'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -84,6 +85,7 @@ export default function RootLayout() {
 							{intro ? <IntroSplash onDone={endIntro} /> : null}
 							<PushPrimer />
 							<ToastHost />
+							{intro ? null : <UpdatePrompt />}
 						</SafeAreaProvider>
 					</PushProvider>
 				</RealtimeProvider>

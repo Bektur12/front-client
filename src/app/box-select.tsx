@@ -204,7 +204,7 @@ export default function BoxSelectScreen() {
 			{/* Регистрация: «Назад» — к выбору роли, а не на экраны покупателя. */}
 			<ScreenHeader title={hasShop ? t('Ваш контейнер') : t('Где вы продаёте')} onBack={hasShop ? undefined : () => resetTo('/role')} />
 
-			<ScrollView
+			<ScrollView keyboardDismissMode="on-drag"
 				contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 16, paddingBottom: 16, gap: 10 }}
 				keyboardShouldPersistTaps="handled"
 				showsVerticalScrollIndicator={false}
@@ -216,7 +216,7 @@ export default function BoxSelectScreen() {
 						<View style={{ flexDirection: 'row', padding: 4, borderRadius: 16, backgroundColor: c.fill, gap: 4 }}>
 							{([
 								{ value: 'MARKET', label: t('На рынке'), icon: MarketIcon },
-								{ value: 'STORE', label: t('Магазин или центр'), icon: StoreIcon },
+								{ value: 'STORE', label: t('Магазин'), icon: StoreIcon },
 							] as const).map(({ value, label, icon: Icon }) => {
 								const active = where === value
 								return (
@@ -242,7 +242,7 @@ export default function BoxSelectScreen() {
 										}}
 									>
 										<Icon size={20} color={active ? c.brandStrong : c.muted} />
-										<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: fs.base, fontFamily: fontFamily(active ? 700 : 600), color: active ? c.ink : c.muted }}>
+										<Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ flexShrink: 1, fontSize: fs.base, fontFamily: fontFamily(active ? 700 : 600), color: active ? c.ink : c.muted }}>
 											{label}
 										</Text>
 									</Pressable>

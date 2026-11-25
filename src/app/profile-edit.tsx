@@ -56,7 +56,7 @@ export default function ProfileEditScreen() {
 	return (
 		<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: c.surface }}>
 			<ScreenHeader inset title={t('Профиль')} />
-			<ScrollView contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
+			<ScrollView keyboardDismissMode="on-drag" contentContainerStyle={{ padding: 16, gap: 14 }} keyboardShouldPersistTaps="handled">
 				<Pressable onPress={() => avatar.pick('library')} disabled={uploading} style={{ alignSelf: 'center', alignItems: 'center', gap: 8 }}>
 					{me?.avatarUrl ? (
 						<Image source={{ uri: resolveUrl(me.avatarUrl) }} style={{ width: 96, height: 96, borderRadius: 48 }} />

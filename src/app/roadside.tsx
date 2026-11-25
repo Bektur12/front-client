@@ -125,11 +125,11 @@ export default function RoadsideScreen() {
 		point: gps.point,
 		service,
 		carId: car?.id,
-		enabled: signedIn,
+		enabled: true,
 	})
 
 	// The server list when it answered; otherwise the saved directory ranked here, the same way.
-	const offline = !online.data && (online.isError || !signedIn)
+	const offline = !online.data && online.isError
 	const rows: Row[] = useMemo(() => {
 		if (online.data) {
 			return online.data.map((item) => ({
@@ -251,13 +251,6 @@ export default function RoadsideScreen() {
 						action={syncing ? undefined : { label: t('Обновить'), onPress: () => sync({ force: true }) }}
 					/>
 				) : null}
-				{!signedIn ? (
-					<Notice
-						tone="warning"
-						text={t('Войдите, чтобы видеть мастеров рядом и сохранить справочник на телефон')}
-						action={{ label: t('Войти'), onPress: () => requireSignIn() }}
-					/>
-				) : null}
 
 				<ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
 					{SERVICES.map((code) => (
@@ -326,9 +319,9 @@ export default function RoadsideScreen() {
 					))
 				)}
 
-				{!offline && signedIn && service ? (
+				{!offline && service ? (
 					<Pressable
-						onPress={() => router.push({ pathname: '/service-new', params: { service } })}
+						onPress={() => requireSignIn(t('Чтобы позвать мастера, войдите по номеру телефона.')) && router.push({ pathname: '/service-new', params: { service } })}
 						style={{ height: 52, borderRadius: 14, borderWidth: 2, borderColor: c.border, alignItems: 'center', justifyContent: 'center' }}
 					>
 						<Text style={{ fontSize: fs.base, fontFamily: fontFamily(700), color: c.brandStrong }}>{t('Не дозвонились? Отправить заявку всем рядом')}</Text>
